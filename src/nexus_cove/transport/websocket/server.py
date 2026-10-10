@@ -97,24 +97,21 @@ class CoveWebSocketServer:
             return
 
         action = data.get("action")
-        if action == "register":
-            await self._on_register(websocket, data)
-        elif action == "broadcast":
-            await self._on_broadcast(websocket, data)
-        elif action == "direct_message":
-            await self._on_direct_message(websocket, data)
-        elif action == "control":
-            await self._on_control(websocket, data)
-        elif action == "presence":
-            await self._on_presence(websocket, data)
-        elif action == "log_request":
+        handlers = {
+            "register": self._on_register,
+            "broadcast": self._on_broadcast,
+            "direct_message": self._on_direct_message,
+            "control": self._on_control,
+            "presence": self._on_presence,
+            "task_assign": self._on_task_assign,
+            "task_result": self._on_task_result,
+        }
+        if action == "log_request":
             await self._on_log_request(websocket)
-        elif action == "task_assign":
-            await self._on_task_assign(websocket, data)
-        elif action == "task_result":
-            await self._on_task_result(websocket, data)
         elif action == "ping":
             await self._send(websocket, {"action": "pong"})
+        elif action in handlers:
+            await handlers[action](websocket, data)
         else:
             await self._send_error(websocket, f"Unknown action: {action!r}")
 

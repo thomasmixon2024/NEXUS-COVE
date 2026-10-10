@@ -10,6 +10,10 @@
 
 ## Unreleased
 
+- Refactor: shared streaming JSONL helpers (`utils/jsonl.py`); memory and chatlog use bounded-tail reads.
+- Refactor: Worker message loop split into `_dispatch` / `_on_*` handlers (lower cyclomatic complexity on `run`).
+- Refactor: Manager DM handling extracted; server action routing uses a dispatch table.
+
 - Bugfix: worker task_assign no longer blocks the message loop (pause/stop stay responsive); invalid task payloads are rejected; agent status returns to IDLE after failure.
 - Bugfix: manager handle_result validates payload, preserves measured_duration_seconds, ignores unknown task_ids, and does not tear down the listener on bad results.
 - Bugfix: worker/manager ignore invalid protocol messages instead of disconnecting.

@@ -126,6 +126,36 @@ class Manager:
         )
         return result
 
+    async def _on_direct_message(self, message: dict) -> None:
+        sender = message.get("sender", "Unknown")
+        msg_content = message.get("message", "")
+        recipient = message.get("recipient", self.identity)
+        log.info(
+            f"Received direct message from {sender} for {recipient}: {msg_content}",
+            extra={"event": "direct_message_received"},
+        )
+        if recipient != self.identity or is_paused():
+            return
+        if not self._dialogue.should_reply(sender, message.get("sender_kind", "")):
+            log.info(
+                f"Not replying to {sender}: turn limit reached or unknown sender",
+                extra={"event": "direct_message_suppressed"},
+            )
+            return
+        response = f"Manager received: {msg_content}"
+        await self.websocket.send(
+            encode_message(
+                "direct_message",
+                sender=self.identity,
+                recipient=sender,
+                message=response,
+            )
+        )
+        log.info(
+            f"Sent automated response to {sender}",
+            extra={"event": "automated_response_sent"},
+        )
+
     async def listen(self) -> None:
         async for raw in self.websocket:
             try:
@@ -138,7 +168,6 @@ class Manager:
                 )
                 continue
             action = message.get("action")
-
             if action == "agent_register":
                 await self.register_agent(message)
             elif action == "task_result":
@@ -151,61 +180,11 @@ class Manager:
                         extra={"event": "task_result_invalid"},
                     )
             elif action == "direct_message":
-                # Handle direct messages - send automated response
-                sender = message.get("sender", "Unknown")
-                msg_content = message.get("message", "")
-                recipient = message.get("recipient", self.identity)
-                log.info(
-                    f"Received direct message from {sender} for {recipient}: {msg_content}",
-                    extra={"event": "direct_message_received"},
-                )
-
-                # Only respond if the message is directed at this manager and the
-                # dialogue guard allows another reply (see core/dialogue.py).
-                if (
-                    (recipient == self.identity or recipient is None)
-                    and not is_paused()
-                    and self._dialogue.should_reply(sender, message.get("sender_kind", ""))
-                ):
-                    # Send automated response
-                    response_msg = {
-                        "action": "direct_message",
-                        "sender": self.identity,
-                        "recipient": sender,
-                        "message": f"Hello {sender}! I am {self.identity}, the NEXUS COVE manager. "
-                        f"I received your message: '{msg_content}'",
-                    }
-                    await self.websocket.send(
-                        encode_message(
-                            response_msg["action"],
-                            sender=response_msg["sender"],
-                            recipient=response_msg["recipient"],
-                            message=response_msg["message"],
-                        )
-                    )
-                    log.info(
-                        f"Sent automated response to {sender}",
-                        extra={"event": "automated_response_sent"},
-                    )
-
-            elif action == "broadcast":
-                # Handle broadcast messages - log and optionally respond
-                sender = message.get("sender", "Unknown")
-                msg_content = message.get("message", "")
-                log.info(
-                    f"Received broadcast from {sender}: {msg_content}",
-                    extra={"event": "broadcast_received"},
-                )
-
-                # Managers do not reply to broadcasts, for the same reason as workers:
-                # a reply would be re-broadcast to every agent, which then replies again.
-
+                await self._on_direct_message(message)
             elif action == "control" and message.get("command") == "stop":
                 log.info("Stop command received", extra={"event": "stop_received"})
                 self._stopping = True
                 return
-
-            # Ignore other message types but maintain connection
 
     async def wait_for_agent(self, timeout: float = 10.0) -> None:
         await asyncio.wait_for(self._ready.wait(), timeout=timeout)

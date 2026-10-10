@@ -290,6 +290,79 @@ class Worker:
             )
         )
 
+
+    async def _on_direct_message(self, ws, message: dict) -> None:
+        sender = message.get("sender", "Unknown")
+        msg_content = message.get("message", "")
+        log.info(
+            f"Received direct message from {sender}: {msg_content}",
+            extra={"event": "direct_message_received"},
+        )
+        if is_agent_paused(self.agent.agent_id):
+            log.info(
+                f"Paused: not replying to {sender}",
+                extra={"event": "paused_no_reply"},
+            )
+            return
+        if not self._dialogue.should_reply(sender, message.get("sender_kind", "")):
+            log.info(
+                f"Not replying to {sender}: turn limit reached or unknown sender",
+                extra={"event": "direct_message_suppressed"},
+            )
+            return
+        self._record("received", sender, msg_content)
+        self._spawn(self._answer_direct(ws, sender, msg_content))
+
+    async def _on_broadcast(self, ws, message: dict) -> None:
+        sender = message.get("sender", "Unknown")
+        msg_content = message.get("message", "")
+        log.info(
+            f"Received broadcast from {sender}: {msg_content}",
+            extra={"event": "broadcast_received"},
+        )
+        if sender != self.agent.agent_id:
+            self._record("received", sender, msg_content)
+        # Answer group messages from humans only.
+        if message.get("sender_kind") == "html_client" and not is_agent_paused(self.agent.agent_id):
+            self._spawn(self._answer_group(ws, sender, msg_content))
+
+    async def _on_control(self, ws, message: dict) -> bool:
+        """Apply control command. Returns True if the worker should stop."""
+        if message.get("sender_kind") != "html_client":
+            return False
+        command = message.get("command")
+        name = self.agent.agent_id
+        if command == "pause":
+            await self._announce(ws, f"{name} is paused. It will not reply until it is resumed.")
+            set_agent_paused(name, True)
+            self._cancel_inflight()
+            await self._send_presence(ws)
+        elif command == "resume":
+            set_agent_paused(name, False)
+            await self._announce(ws, f"{name} is active again.")
+            await self._send_presence(ws)
+        elif command == "stop":
+            self._stopping = True
+            self._cancel_inflight()
+        log.info(
+            f"Control command applied: {command}",
+            extra={"event": "control_applied", "command": command},
+        )
+        return self._stopping
+
+    async def _dispatch(self, ws, message: dict) -> bool:
+        """Route one protocol message. Returns True if the session should end."""
+        action = message.get("action")
+        if action == "task_assign":
+            self._spawn(self._execute_assigned_task(ws, message))
+        elif action == "direct_message":
+            await self._on_direct_message(ws, message)
+        elif action == "broadcast":
+            await self._on_broadcast(ws, message)
+        elif action == "control":
+            return await self._on_control(ws, message)
+        return False
+
     async def run(self) -> None:
         import websockets
 
@@ -326,84 +399,8 @@ class Worker:
                             extra={"event": "invalid_message"},
                         )
                         continue
-                    action = message.get("action")
-
-                    if action == "task_assign":
-                        # Run off the message loop so pause/stop remain responsive.
-                        self._spawn(self._execute_assigned_task(ws, message))
-
-                    elif action == "direct_message":
-                        # Handle direct messages - send automated response
-                        sender = message.get("sender", "Unknown")
-                        msg_content = message.get("message", "")
-                        log.info(
-                            f"Received direct message from {sender}: {msg_content}",
-                            extra={"event": "direct_message_received"},
-                        )
-
-                        if is_agent_paused(self.agent.agent_id):
-                            log.info(
-                                f"Paused: not replying to {sender}",
-                                extra={"event": "paused_no_reply"},
-                            )
-                            continue
-
-                        if not self._dialogue.should_reply(sender, message.get("sender_kind", "")):
-                            log.info(
-                                f"Not replying to {sender}: turn limit reached or unknown sender",
-                                extra={"event": "direct_message_suppressed"},
-                            )
-                            continue
-
-                        self._record("received", sender, msg_content)
-                        self._spawn(self._answer_direct(ws, sender, msg_content))
-
-                    elif action == "broadcast":
-                        # Handle broadcast messages - log and optionally respond
-                        sender = message.get("sender", "Unknown")
-                        msg_content = message.get("message", "")
-                        log.info(
-                            f"Received broadcast from {sender}: {msg_content}",
-                            extra={"event": "broadcast_received"},
-                        )
-
-                        if sender != self.agent.agent_id:
-                            self._record("received", sender, msg_content)
-
-                        # Answer group messages from humans only. Agent broadcasts are
-                        # never answered, so two agents cannot keep each other talking.
-                        if message.get("sender_kind") == "html_client" and not is_agent_paused(
-                            self.agent.agent_id
-                        ):
-                            self._spawn(self._answer_group(ws, sender, msg_content))
-
-                    elif action == "control":
-                        # Pause or resume, forwarded by the server only from a human client.
-                        if message.get("sender_kind") != "html_client":
-                            continue
-                        command = message.get("command")
-                        name = self.agent.agent_id
-                        if command == "pause":
-                            status = f"{name} is paused. It will not reply until it is resumed."
-                            await self._announce(ws, status)
-                            set_agent_paused(name, True)
-                            self._cancel_inflight()
-                            await self._send_presence(ws)
-                        elif command == "resume":
-                            set_agent_paused(name, False)
-                            await self._announce(ws, f"{name} is active again.")
-                            await self._send_presence(ws)
-                        elif command == "stop":
-                            self._stopping = True
-                            self._cancel_inflight()
-                        log.info(
-                            f"Control command applied: {command}",
-                            extra={"event": "control_applied", "command": command},
-                        )
-                        if self._stopping:
-                            break
-
-                    # Ignore other message types but maintain connection
+                    if await self._dispatch(ws, message):
+                        break
 
             except websockets.exceptions.ConnectionClosed:
                 # Connection was closed, attempt to reconnect

@@ -7,10 +7,10 @@ an agent can refer back to earlier conversation.
 
 from __future__ import annotations
 
-import json
-from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
+
+from nexus_cove.utils.jsonl import append_jsonl, iter_jsonl, read_jsonl_tail
 
 DIRECTIONS = frozenset({"sent", "received"})
 
@@ -22,42 +22,18 @@ class AgentMemory:
     def append(self, direction: str, peer: str, text: str) -> None:
         if direction not in DIRECTIONS:
             raise ValueError(f"direction must be 'sent' or 'received', got {direction!r}")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        record = {
-            "at": datetime.now(UTC).isoformat(timespec="seconds"),
-            "direction": direction,
-            "peer": peer,
-            "text": text,
-        }
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        append_jsonl(
+            self.path,
+            {
+                "at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "direction": direction,
+                "peer": peer,
+                "text": text,
+            },
+        )
 
     def entries(self) -> list[dict]:
-        if not self.path.is_file():
-            return []
-        out: list[dict] = []
-        with self.path.open(encoding="utf-8") as handle:
-            for line in handle:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    out.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue
-        return out
+        return list(iter_jsonl(self.path))
 
     def recent(self, limit: int) -> list[dict]:
-        if not self.path.is_file():
-            return []
-        if limit < 1:
-            return []
-        with self.path.open(encoding="utf-8") as handle:
-            tail = deque((line for line in handle if line.strip()), maxlen=limit)
-        out: list[dict] = []
-        for line in tail:
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-        return out
+        return read_jsonl_tail(self.path, limit)

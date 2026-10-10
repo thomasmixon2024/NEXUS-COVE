@@ -8,11 +8,11 @@ written again.
 
 from __future__ import annotations
 
-import json
 import os
-from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
+
+from nexus_cove.utils.jsonl import append_jsonl, read_jsonl_tail
 
 LOG_DIR_ENV = "NEXUS_COVE_LOG_DIR"
 CHAT_LOG_NAME = "nexus_chat.jsonl"
@@ -35,29 +35,17 @@ class ChatLog:
         recipient: str | None,
         message: str,
     ) -> None:
-        record = {
-            "at": datetime.now(UTC).isoformat(timespec="seconds"),
-            "kind": kind,
-            "sender": sender,
-            "sender_kind": sender_kind,
-            "recipient": recipient,
-            "message": message,
-        }
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+        append_jsonl(
+            self.path,
+            {
+                "at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "kind": kind,
+                "sender": sender,
+                "sender_kind": sender_kind,
+                "recipient": recipient,
+                "message": message,
+            },
+        )
 
     def read(self, limit: int = MAX_ENTRIES_RETURNED) -> list[dict]:
-        if not self.path.is_file():
-            return []
-        if limit < 1:
-            return []
-        with self.path.open(encoding="utf-8") as handle:
-            tail = deque((line for line in handle if line.strip()), maxlen=limit)
-        out: list[dict] = []
-        for line in tail:
-            try:
-                out.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-        return out
+        return read_jsonl_tail(self.path, limit)
