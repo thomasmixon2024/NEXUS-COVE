@@ -10,6 +10,13 @@
 
 ## Unreleased
 
+- Bugfix: manager and worker reconnection no longer double-sleep (was sleeping current_delay then calling delay() which slept again).
+- Bugfix: Manager rejects construction without a Storage instance; removed misleading @dataclass on Manager.
+- Deduped RuntimeMetrics: manager now uses nexus_cove.observability.metrics.RuntimeMetrics.
+- Removed unused with_exponential_backoff helper from utils/reconnection.py.
+- Removed obsolete scripts: scripts/launchers/run_messenger.bat, scripts/diagnostics/check_cove.py.
+- SQLite migration path no longer uses a silent pass; undefined versions raise explicitly.
+
 - Diagnostic Hospital suite added under `scripts/diagnostics/Hospital/` (structured process, port, log, and probe collectors with severity scoring and JSON output). Legacy `Check-Agents.ps1` is now a compatibility shim.
 - Community and quality files: `LICENSE` (All Rights Reserved), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `.editorconfig`, `.pre-commit-config.yaml`, `.github/dependabot.yml`.
 - `data/.gitkeep` and documented top-level `config/` placeholder; `src/nexus_cove/py.typed` for PEP 561.

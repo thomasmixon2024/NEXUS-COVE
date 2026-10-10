@@ -409,7 +409,6 @@ class Worker:
                     "delay": self._reconnect_backoff.current_delay,
                 },
             )
-            await asyncio.sleep(self._reconnect_backoff.current_delay)
             await self._reconnect_backoff.delay()
 
 

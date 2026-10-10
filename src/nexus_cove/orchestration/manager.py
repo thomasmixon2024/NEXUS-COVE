@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -14,35 +13,16 @@ from nexus_cove.core.protocols import decode_message, encode_message, task_to_pa
 from nexus_cove.orchestration.registry import AgentRegistry
 from nexus_cove.orchestration.scheduler import CapabilityLoadScheduler
 from nexus_cove.orchestration.task_registry import TaskRegistry
+from nexus_cove.observability.metrics import RuntimeMetrics
 from nexus_cove.utils.reconnection import ExponentialBackoff
 
 log = logging.getLogger("nexus_cove.manager")
 
 
-@dataclass
-class RuntimeMetrics:
-    tasks_submitted: int = 0
-    tasks_completed: int = 0
-    tasks_failed: int = 0
-    tasks_in_flight: int = 0
-    total_duration_seconds: float = 0.0
-
-    def record_submission(self) -> None:
-        self.tasks_submitted += 1
-        self.tasks_in_flight += 1
-
-    def record_result(self, duration_seconds: float, success: bool) -> None:
-        self.tasks_in_flight = max(0, self.tasks_in_flight - 1)
-        self.total_duration_seconds += duration_seconds
-        if success:
-            self.tasks_completed += 1
-        else:
-            self.tasks_failed += 1
-
-
-@dataclass
 class Manager:
     def __init__(self, uri: str = "ws://127.0.0.1:8765", storage=None) -> None:
+        if storage is None:
+            raise ValueError("Manager requires a Storage instance")
         self.uri = uri
         self.storage = storage
         self.registry = AgentRegistry()
@@ -235,7 +215,6 @@ class Manager:
                     "delay": self._reconnect_backoff.current_delay,
                 },
             )
-            await asyncio.sleep(self._reconnect_backoff.current_delay)
             await self._reconnect_backoff.delay()
 
 

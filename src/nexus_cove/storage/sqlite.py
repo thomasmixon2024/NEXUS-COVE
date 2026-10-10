@@ -119,19 +119,13 @@ class SQLiteStorage:
         This method should contain the specific logic for migrating from
         version (target_version - 1) to target_version.
         """
-        # For now, since we're starting at version 1 and LATEST_SCHEMA_VERSION is 1,
-        # no migrations are needed. Future migrations would be added here.
-        #
-        # Example structure for future migrations:
+        # Schema is currently at version 1. Future migrations land here, e.g.:
         # if target_version == 2:
-        #     self.connection.execute(
-        #         "ALTER TABLE tasks ADD COLUMN new_column TEXT DEFAULT 'default_value'"
-        #     )
-        # elif target_version == 3:
-        #     self.connection.execute(
-        #         "CREATE INDEX IF NOT EXISTS idx_new ON task_results(new_column)"
-        #     )
-        pass
+        #     self.connection.execute("ALTER TABLE tasks ADD COLUMN ...")
+        #     return
+        if target_version <= 1:
+            return
+        raise RuntimeError(f"No migration defined for schema version {target_version}")
 
     def record_task(self, task: Task, status: str) -> None:
         conn = self._require_connection()
