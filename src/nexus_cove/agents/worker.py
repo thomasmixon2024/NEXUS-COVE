@@ -162,6 +162,75 @@ class Worker:
         for task in list(self._inflight):
             task.cancel()
 
+
+    async def _execute_assigned_task(self, ws, message: dict) -> None:
+        """Execute a task_assign payload off the listener so control stays responsive."""
+        task_data = message.get("task")
+        if not isinstance(task_data, dict):
+            log.error("task_assign missing task payload", extra={"event": "task_assign_invalid"})
+            return
+        try:
+            task = Task(
+                task_id=task_data["task_id"],
+                prompt=task_data["prompt"],
+                task_type=task_data.get("task_type", "general"),
+                required_capabilities=frozenset(task_data.get("required_capabilities", [])),
+                priority=int(task_data.get("priority", 0)),
+                parent_task_id=task_data.get("parent_task_id"),
+                created_at=datetime.fromisoformat(task_data["created_at"]),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            log.error(
+                "task_assign payload invalid: %s",
+                exc,
+                extra={"event": "task_assign_invalid"},
+            )
+            return
+
+        self.agent.status = AgentStatus.BUSY
+        try:
+            result = await self.backend.execute(task, self.agent.agent_id)
+        except Exception as exc:
+            now = datetime.now(UTC)
+            result = TaskResult(
+                task_id=task.task_id,
+                agent_id=self.agent.agent_id,
+                status=TaskStatus.FAILED,
+                started_at=now,
+                finished_at=now,
+                error=str(exc),
+            )
+            log.exception(
+                "task failed",
+                extra={
+                    "task_id": task.task_id,
+                    "agent_id": self.agent.agent_id,
+                    "event": "task_failed",
+                },
+            )
+        else:
+            log.info(
+                "task completed",
+                extra={
+                    "task_id": task.task_id,
+                    "agent_id": self.agent.agent_id,
+                    "event": "task_completed",
+                },
+            )
+        finally:
+            self.agent.status = AgentStatus.IDLE
+
+        if self._stopping:
+            return
+        try:
+            await ws.send(encode_message("task_result", result=result))
+        except Exception as exc:
+            log.warning(
+                "failed to send task_result: %s",
+                exc,
+                extra={"event": "task_result_send_failed", "task_id": task.task_id},
+            )
+
     async def _answer_direct(self, ws, sender: str, msg_content: str) -> None:
         if self._replier is None:
             reply_text = (
