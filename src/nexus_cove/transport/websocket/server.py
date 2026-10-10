@@ -404,6 +404,12 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
+    if args.host not in ("127.0.0.1", "localhost", "::1"):
+        logging.getLogger(__name__).warning(
+            "Binding to %s exposes an unauthenticated endpoint; "
+            "use 127.0.0.1 for local development (see SECURITY.md)",
+            args.host,
+        )
     asyncio.run(CoveWebSocketServer(args.host, args.port).start())
 
 

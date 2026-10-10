@@ -81,22 +81,39 @@ class Manager:
         return task.task_id
 
     async def handle_result(self, payload: dict[str, Any]) -> TaskResult:
-        raw = payload["result"]
-        result = TaskResult(
-            task_id=raw["task_id"],
-            agent_id=raw["agent_id"],
-            status=TaskStatus(raw["status"]),
-            started_at=datetime.fromisoformat(raw["started_at"]),
-            finished_at=datetime.fromisoformat(raw["finished_at"]),
-            output=raw.get("output"),
-            error=raw.get("error"),
-            metadata=raw.get("metadata", {}),
-        )
+        raw = payload.get("result")
+        if not isinstance(raw, dict):
+            raise ValueError("task_result payload missing 'result' object")
+        try:
+            measured = raw.get("measured_duration_seconds")
+            result = TaskResult(
+                task_id=raw["task_id"],
+                agent_id=raw["agent_id"],
+                status=TaskStatus(raw["status"]),
+                started_at=datetime.fromisoformat(raw["started_at"]),
+                finished_at=datetime.fromisoformat(raw["finished_at"]),
+                output=raw.get("output"),
+                error=raw.get("error"),
+                metadata=raw.get("metadata") or {},
+                measured_duration_seconds=(
+                    float(measured) if measured is not None else None
+                ),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(f"invalid task_result payload: {exc}") from exc
+
         agent = self.registry.get(result.agent_id)
         if agent:
             agent.current_load = max(0, agent.current_load - 1)
             agent.status = AgentStatus.IDLE
-        self.tasks.set_status(result.task_id, result.status)
+        if self.tasks.get_optional(result.task_id) is None:
+            log.warning(
+                "result for unknown task_id=%s",
+                result.task_id,
+                extra={"event": "unknown_task_result"},
+            )
+        else:
+            self.tasks.set_status(result.task_id, result.status)
         self.storage.record_result(result)
         self.metrics.record_result(result.duration_seconds, result.status == TaskStatus.COMPLETED)
         log.info(
@@ -111,13 +128,28 @@ class Manager:
 
     async def listen(self) -> None:
         async for raw in self.websocket:
-            message = decode_message(raw)
+            try:
+                message = decode_message(raw)
+            except ValueError as exc:
+                log.warning(
+                    "ignoring invalid message: %s",
+                    exc,
+                    extra={"event": "invalid_message"},
+                )
+                continue
             action = message.get("action")
 
             if action == "agent_register":
                 await self.register_agent(message)
             elif action == "task_result":
-                await self.handle_result(message)
+                try:
+                    await self.handle_result(message)
+                except ValueError as exc:
+                    log.warning(
+                        "ignoring invalid task_result: %s",
+                        exc,
+                        extra={"event": "task_result_invalid"},
+                    )
             elif action == "direct_message":
                 # Handle direct messages - send automated response
                 sender = message.get("sender", "Unknown")

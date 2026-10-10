@@ -10,6 +10,14 @@
 
 ## Unreleased
 
+- Bugfix: worker task_assign no longer blocks the message loop (pause/stop stay responsive); invalid task payloads are rejected; agent status returns to IDLE after failure.
+- Bugfix: manager handle_result validates payload, preserves measured_duration_seconds, ignores unknown task_ids, and does not tear down the listener on bad results.
+- Bugfix: worker/manager ignore invalid protocol messages instead of disconnecting.
+- Bugfix: AgentMemory and ChatLog skip corrupt JSONL lines instead of raising.
+- Bugfix: decode_message rejects empty/non-JSON input with clear errors.
+- SQLite connect uses a 30s busy timeout; server logs a warning when binding off loopback.
+- TaskRegistry.get_optional added for safe lookups.
+
 - Bugfix: manager and worker reconnection no longer double-sleep (was sleeping current_delay then calling delay() which slept again).
 - Bugfix: Manager rejects construction without a Storage instance; removed misleading @dataclass on Manager.
 - Deduped RuntimeMetrics: manager now uses nexus_cove.observability.metrics.RuntimeMetrics.

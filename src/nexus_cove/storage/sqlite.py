@@ -13,7 +13,7 @@ class SQLiteStorage:
 
     def initialize(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.connection = sqlite3.connect(self.path)
+        self.connection = sqlite3.connect(self.path, timeout=30.0)
         self.connection.execute("PRAGMA foreign_keys = ON")
 
         # Create schema version table if it doesn't exist

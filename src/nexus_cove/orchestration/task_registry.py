@@ -28,3 +28,6 @@ class TaskRegistry:
 
     def get(self, task_id: str) -> Task:
         return self._tasks[task_id]
+
+    def get_optional(self, task_id: str) -> Task | None:
+        return self._tasks.get(task_id)

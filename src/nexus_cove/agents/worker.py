@@ -248,56 +248,20 @@ class Worker:
                     )
 
                 async for raw in ws:
-                    message = decode_message(raw)
+                    try:
+                        message = decode_message(raw)
+                    except ValueError as exc:
+                        log.warning(
+                            "ignoring invalid message: %s",
+                            exc,
+                            extra={"event": "invalid_message"},
+                        )
+                        continue
                     action = message.get("action")
 
                     if action == "task_assign":
-                        # Handle task assignment (existing functionality)
-                        task_data = message["task"]
-                        task = Task(
-                            task_id=task_data["task_id"],
-                            prompt=task_data["prompt"],
-                            task_type=task_data["task_type"],
-                            required_capabilities=frozenset(
-                                task_data.get("required_capabilities", [])
-                            ),
-                            priority=task_data.get("priority", 0),
-                            parent_task_id=task_data.get("parent_task_id"),
-                            created_at=datetime.fromisoformat(task_data["created_at"]),
-                        )
-                        self.agent.status = AgentStatus.BUSY
-                        try:
-                            result = await self.backend.execute(task, self.agent.agent_id)
-                        except Exception as exc:
-                            now = datetime.now(UTC)
-                            result = TaskResult(
-                                task_id=task.task_id,
-                                agent_id=self.agent.agent_id,
-                                status=TaskStatus.FAILED,
-                                started_at=now,
-                                finished_at=now,
-                                error=str(exc),
-                            )
-                            self.agent.status = AgentStatus.ERROR
-                            log.exception(
-                                "task failed",
-                                extra={
-                                    "task_id": task.task_id,
-                                    "agent_id": self.agent.agent_id,
-                                    "event": "task_failed",
-                                },
-                            )
-                        else:
-                            self.agent.status = AgentStatus.IDLE
-                            log.info(
-                                "task completed",
-                                extra={
-                                    "task_id": task.task_id,
-                                    "agent_id": self.agent.agent_id,
-                                    "event": "task_completed",
-                                },
-                            )
-                        await ws.send(encode_message("task_result", result=result))
+                        # Run off the message loop so pause/stop remain responsive.
+                        self._spawn(self._execute_assigned_task(ws, message))
 
                     elif action == "direct_message":
                         # Handle direct messages - send automated response

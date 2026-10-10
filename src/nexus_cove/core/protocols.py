@@ -29,13 +29,19 @@ def encode_message(action: str, **payload: Any) -> str:
 
 
 def decode_message(raw: str) -> dict[str, Any]:
-    data = json.loads(raw)
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("Message must be a non-empty string")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Message is not valid JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError("Message must be a JSON object")
-    if data.get("version") != PROTOCOL_VERSION:
-        raise ValueError(f"Unsupported protocol version: {data.get('version')!r}")
+    version = data.get("version")
+    if version != PROTOCOL_VERSION:
+        raise ValueError(f"Unsupported protocol version: {version!r}")
     action = data.get("action")
-    if not isinstance(action, str) or not action:
+    if not isinstance(action, str) or not action.strip():
         raise ValueError("Message action is required")
     return data
 

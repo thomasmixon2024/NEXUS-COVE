@@ -50,6 +50,14 @@ class ChatLog:
     def read(self, limit: int = MAX_ENTRIES_RETURNED) -> list[dict]:
         if not self.path.is_file():
             return []
+        if limit < 1:
+            return []
         with self.path.open(encoding="utf-8") as handle:
             tail = deque((line for line in handle if line.strip()), maxlen=limit)
-        return [json.loads(line) for line in tail]
+        out: list[dict] = []
+        for line in tail:
+            try:
+                out.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return out
