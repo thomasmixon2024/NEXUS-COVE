@@ -17,8 +17,11 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $logDir   = Join-Path $repoRoot 'logs'
 $htmlPath = Join-Path $repoRoot 'web\index.html'
+$pythonExe = Join-Path $repoRoot '.venv\Scripts\python.exe'
 $port     = 8765
 $uri      = "ws://127.0.0.1:$port"
+$ollamaUrl = 'http://127.0.0.1:11434'
+$modelName = 'qwen2.5:0.5b'
 $launchLog = Join-Path $logDir 'launcher.log'
 
 function Write-LaunchLog {
@@ -34,14 +37,94 @@ function Test-AgentRunning {
     return [bool]$hit
 }
 
+function Get-WorkerProcesses {
+    param([string]$AgentName)
+    $namePattern = '--name\s+"?' + [regex]::Escape($AgentName) + '"?(\s|$)'
+    return @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+        Where-Object {
+            $_.CommandLine -match 'nexus_cove\.agents\.worker' -and
+            $_.CommandLine -match $namePattern
+        })
+}
+
 function Start-Hidden {
-    param([string]$Name, [string[]]$ArgList)
+    param([string]$Name, [string[]]$ArgList, [string]$ExecutablePath)
+    if (-not $ExecutablePath) { $ExecutablePath = $pythonExe }
     $out = Join-Path $logDir ("{0}.out.log" -f $Name)
     $err = Join-Path $logDir ("{0}.err.log" -f $Name)
-    Start-Process -FilePath 'python' -ArgumentList (@('-u') + $ArgList) `
+    Start-Process -FilePath $ExecutablePath -ArgumentList (@('-u') + $ArgList) `
         -WorkingDirectory $repoRoot -WindowStyle Hidden `
         -RedirectStandardOutput $out -RedirectStandardError $err | Out-Null
     Write-LaunchLog 'INFO' "Started $Name (logs: $out)"
+}
+
+function Ensure-Worker {
+    param([string]$AgentName, [string[]]$ArgList)
+    $existing = @(Get-WorkerProcesses $AgentName)
+    if ($existing.Count -gt 0) {
+        $wrongModel = @($existing | Where-Object {
+            $_.CommandLine -notmatch ('--model\s+' + [regex]::Escape($modelName) + '(\s|$)')
+        })
+        if ($wrongModel.Count -eq 0) {
+            Write-LaunchLog 'INFO' "$AgentName already running with $modelName; not starting another."
+            return
+        }
+
+        Write-LaunchLog 'WARN' "$AgentName has a stale model configuration; restarting it with $modelName."
+        foreach ($process in $existing) {
+            Stop-Process -Id $process.ProcessId -ErrorAction SilentlyContinue
+        }
+        for ($i = 0; $i -lt 20 -and (Get-WorkerProcesses $AgentName).Count -gt 0; $i++) {
+            Start-Sleep -Milliseconds 250
+        }
+        if ((Get-WorkerProcesses $AgentName).Count -gt 0) {
+            throw "Could not stop the old $AgentName process. Close it, then launch the test bed again."
+        }
+    }
+    Start-Hidden -Name $AgentName -ArgList $ArgList
+}
+
+function Wait-ForChatReady {
+    $probe = @'
+import asyncio
+import json
+
+import websockets
+
+
+async def main():
+    expected = {"Nexus-Manager", "Aegis-Worker", "Vigil-Worker"}
+    deadline = asyncio.get_running_loop().time() + 30
+    async with websockets.connect("ws://127.0.0.1:8765", open_timeout=5) as ws:
+        await ws.send(json.dumps({
+            "version": 1,
+            "action": "register",
+            "username": "user_nexus_launcher_probe",
+        }))
+        while asyncio.get_running_loop().time() < deadline:
+            remaining = deadline - asyncio.get_running_loop().time()
+            try:
+                frame = json.loads(await asyncio.wait_for(ws.recv(), min(1, remaining)))
+            except TimeoutError:
+                continue
+            if frame.get("action") != "user_list":
+                continue
+            users = {user["identity"]: user for user in frame.get("users", [])}
+            missing = expected - users.keys()
+            paused = {
+                name for name in ("Aegis-Worker", "Vigil-Worker")
+                if name in users and users[name].get("paused")
+            }
+            if not missing and not paused:
+                print("Chat ready: manager, Aegis-Worker, and Vigil-Worker are registered and active.")
+                return
+        raise SystemExit("Chat readiness timed out. Check worker/server logs and agent pause state.")
+
+
+asyncio.run(main())
+'@
+    $probe | & $pythonExe -
+    if ($LASTEXITCODE -ne 0) { throw 'Manager and both active workers did not register in time.' }
 }
 
 try {
@@ -51,9 +134,26 @@ try {
     if (-not (Test-Path -LiteralPath $htmlPath -PathType Leaf)) {
         throw "Web interface not found: $htmlPath"
     }
+    if (-not (Test-Path -LiteralPath $pythonExe -PathType Leaf)) {
+        throw "Project Python environment not found. Run .\.venv\Scripts\python.exe -m pip install -e `".[dev]`" first."
+    }
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     Set-Location -LiteralPath $repoRoot
     Write-LaunchLog 'INFO' 'Test bed launch requested.'
+
+    # Verify Ollama and the exact chat model before launching workers.
+    try {
+        $ollamaTags = Invoke-RestMethod -Uri "$ollamaUrl/api/tags" -TimeoutSec 4
+    } catch {
+        throw "Ollama is not responding at $ollamaUrl. Start Ollama, then launch the test bed again."
+    }
+    $installedModel = @($ollamaTags.models | Where-Object {
+        $_.name -eq $modelName -or $_.model -eq $modelName
+    })
+    if ($installedModel.Count -eq 0) {
+        throw "Ollama model $modelName is not installed. Run 'ollama pull $modelName', then launch again."
+    }
+    Write-LaunchLog 'INFO' "Ollama and model $modelName are ready."
 
     # 1. Server (only if the port is free)
     if (Get-NetTCPConnection -State Listen -LocalPort $port -ErrorAction SilentlyContinue) {
@@ -79,16 +179,10 @@ try {
         Start-Hidden -Name 'manager' -ArgList @('-m', 'nexus_cove.orchestration.manager', '--uri', $uri)
         Start-Sleep -Seconds 2
     }
-    if (Test-AgentRunning '--name Aegis-Worker') {
-        Write-LaunchLog 'INFO' 'Aegis-Worker already running; not starting another.'
-    } else {
-        Start-Hidden -Name 'Aegis-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Aegis-Worker', '--test-backend', '--uri', $uri, '--model', 'qwen2.5:0.5b', '--start-conversation', 'Vigil-Worker')
-    }
-    if (Test-AgentRunning '--name Vigil-Worker') {
-        Write-LaunchLog 'INFO' 'Vigil-Worker already running; not starting another.'
-    } else {
-        Start-Hidden -Name 'Vigil-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Vigil-Worker', '--capability', 'analysis', '--test-backend', '--uri', $uri, '--model', 'qwen2.5:0.5b')
-    }
+    Ensure-Worker -AgentName 'Aegis-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Aegis-Worker', '--test-backend', '--uri', $uri, '--model', $modelName, '--start-conversation', 'Vigil-Worker')
+    Ensure-Worker -AgentName 'Vigil-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Vigil-Worker', '--capability', 'analysis', '--test-backend', '--uri', $uri, '--model', $modelName)
+
+    Wait-ForChatReady
 
     # 3. Browser GUI
     Start-Process -FilePath $htmlPath

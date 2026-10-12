@@ -29,95 +29,183 @@ The server binds to `127.0.0.1` by default and has **no authentication or encryp
 - WebSocket server (protocol version 1) with named registration, broadcast, direct messages, and structured error replies for missing versions, unknown recipients, and duplicate names.
 - Worker registration by agent ID with capabilities, task assignment, execution through the deterministic backend, and result return to the manager.
 - SQLite persistence of tasks and results, and in-process metrics based on measured durations.
-- Browser GUI (`web/index.html`) for registration, the roster, broadcasts, and direct messages. Chat is live only; nothing is saved between sessions.
+- Browser GUI (`web/index.html`) for registration, the roster, broadcasts, and direct messages. The server appends delivered chat messages to `logs/nexus_chat.jsonl`; the browser can download a chat-log copy.
+- Optional Ollama-backed agent chat replies. The model is used for conversation, not assigned task execution.
+- A global 20-second minimum between agent-to-agent direct-message deliveries, plus a per-partner reply limit.
 
 **Not implemented**
 
-- LLM-backed task execution. Assigned tasks use the deterministic development backend; optional Ollama models are used for chat replies only.
+- Model-backed execution of assigned tasks. Workers use the deterministic development backend and do not turn chat messages into tasks automatically.
 - Authentication, TLS, and access control.
-- Agent autonomy: long-running agents that register on every launch, and agent reasoning.
-- Saved chat history and a monitoring view that separates agent traffic from human traffic.
+- A production execution backend or deployment configuration.
 - An open-source license. See [License](#license) and [LICENSE](LICENSE).
 
 Tests are the authoritative evidence for the status above. Run them to confirm it on your machine.
 
-## Requirements
+## Prerequisites
 
-- Python 3.11 to 3.13
-- Windows PowerShell or any POSIX shell (examples below use PowerShell)
+- Windows 10 or 11 with PowerShell for the launcher scripts. The Python modules can also run on POSIX; the commands below use PowerShell unless stated otherwise.
+- Python 3.11, 3.12, or 3.13. Check the interpreter with `python --version` before creating the environment.
+- Git if you are cloning the repository.
+- A browser to open `web/index.html`.
+- Local TCP port `8765` available for the WebSocket server. The server binds to `127.0.0.1` by default.
+- **Optional for model-generated chat replies:** [Ollama](https://ollama.com/download) installed and running locally. The standard agent launcher uses `qwen2.5:0.5b`; this model must be downloaded before agents can use it.
 
-## Quick start
+NEXUS COVE does not require Ollama for the server, browser chat, or deterministic task round-trip checks. Without `--model`, workers use fixed development replies. Do not expose the unauthenticated server beyond loopback; see [SECURITY.md](SECURITY.md).
+
+## Get the source
+
+If you have access to the private GitHub repository, clone it and move into the project root:
 
 ```powershell
+git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
+Set-Location .\NEXUS-COVE
+```
+
+If you received a project archive instead, extract it and open PowerShell in the extracted project root. The root is the directory containing `pyproject.toml`, `src/`, and `web/`.
+
+## Install
+
+Run these commands from the repository root. On Windows, the explicit virtual-environment interpreter avoids needing to activate the environment or change PowerShell execution policy:
+
+```powershell
+python --version
 python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+```
+
+The editable install provides the `cove-server`, `cove-manager`, and `cove-worker` commands. The runtime dependency is `websockets`; the `[dev]` extra also installs pytest, Ruff, coverage, and pre-commit tools.
+
+For a runtime-only install, use `python -m pip install -e .` instead. To activate the environment in PowerShell for shorter commands, run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
 ```
 
-Start the server:
+On POSIX, use `source .venv/bin/activate` and `.venv/bin/python` in place of the PowerShell activation script and `\.venv\Scripts\python.exe`. The PowerShell launchers and desktop-shortcut scripts are Windows-only.
+
+## Start the full local test bed
+
+This is the recommended Windows path for running the browser chat with the manager and both agents:
+
+1. Install and start Ollama if you want model-generated agent replies. In PowerShell, check the service and download the configured model:
+
+  ```powershell
+  ollama --version
+  ollama list
+  ollama pull qwen2.5:0.5b
+  ```
+
+  Ollama should answer locally at `http://127.0.0.1:11434`. If `ollama list` does not show `qwen2.5:0.5b`, the agents cannot use it. Ollama is not required when you intentionally want fixed development replies.
+
+2. From the repository root, launch the test bed:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  .\.venv\Scripts\Activate.ps1
+  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Launch-NexusTestBed.ps1
+  ```
+
+  Activate the environment first because the launcher starts children by resolving `python` from `PATH`. The launcher starts the WebSocket server if port `8765` is free, then starts a manager, Aegis-Worker, and Vigil-Worker as hidden processes. Both workers use `qwen2.5:0.5b`; Aegis starts a conversation with Vigil at five-minute intervals. The browser page opens at the end.
+
+3. In the browser, wait for **Connected**, register a human username, and use Nexus Chat for a group message or an agent row's **DM** control for a private message. Agent-to-agent direct messages are spaced at least 20 seconds apart; human-to-agent replies are not delayed by that limit.
+
+The launcher reuses an existing server and skips workers when it finds a process with the same name. If you changed a worker's model or startup options, stop that worker first and then run the launcher again; otherwise it may reuse the old process.
+
+To create a desktop shortcut for the full test bed, run:
 
 ```powershell
-cove-server --host 127.0.0.1 --port 8765
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Update-TestBedShortcut.ps1
 ```
 
-Open `web/index.html` in two browser windows, register a different name in each, and send a broadcast and a direct message.
+The shortcut uses the project icon from `assets/logo.ico`, generated from `assets/logo.png`. Before opening the browser, the launcher checks that Ollama and `qwen2.5:0.5b` are available and waits for the manager and both active workers to register.
 
-On Windows, `Setup_NEXUS.ps1` creates a desktop shortcut that starts the server and opens the GUI. Run it with `-NoProfile` so that it starts without loading your personal PowerShell profile:
+Worker and server output is written under `logs/`: `server.out.log`, `manager.out.log`, `Aegis-Worker.out.log`, `Vigil-Worker.out.log`, and matching `.err.log` files. `launcher.log` records startup checks and failures.
+
+## Data and logs
+
+- Manager task and result records use SQLite at `data/cove.db` by default; override the database path with the manager's `--db` option.
+- The server appends delivered chat messages to `logs/nexus_chat.jsonl`.
+- Workers append conversation memory to `data/memory/<agent>.jsonl`.
+- Pause state is kept in `data/PAUSE` globally or `data/paused/<agent>.flag` per worker.
+- `NEXUS_COVE_DATA_DIR` changes worker memory and pause-file locations. `NEXUS_COVE_LOG_DIR` changes the chat-log directory. Set each variable before starting the process that uses it.
+
+### Server and browser only
+
+To use the GUI with human clients but no agents, start only the server:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\Setup_NEXUS.ps1
+.\.venv\Scripts\python.exe -m nexus_cove.transport.websocket.server
 ```
 
-The desktop shortcut and the server window it opens use `-NoProfile` as well.
-
-## Running the test bed silently
-
-The launcher runs the server, manager, and workers as hidden processes. Their output goes to files in `logs\`: `server.out.log`, `manager.out.log`, `Aegis-Worker.out.log`, `Vigil-Worker.out.log`, and matching `.err.log` files. `launcher.log` records each start. If the launcher fails, it opens `launcher.log` in Notepad.
-
-To stop everything started by the test bed:
+In another PowerShell window, open the page:
 
 ```powershell
-Get-CimInstance Win32_Process -Filter "Name='python.exe'" | Where-Object CommandLine -like '*nexus_cove*' | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }
+Start-Process .\web\index.html
 ```
 
-## Agent round trip
+`Setup_NEXUS.ps1` is also a server-and-GUI setup helper: it creates a desktop shortcut, starts the server when the port is free, and opens the page. It does **not** start the manager or agent workers, and it expects the installed `cove-server` command to be on `PATH`.
 
-With the server running, start two workers in separate windows:
+### Start components manually
+
+For visible consoles and easier troubleshooting, open a separate PowerShell window for each process. Run all commands from the repository root, after completing the install above.
+
+Server:
 
 ```powershell
-python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend
-python -m nexus_cove.agents.worker --name Vigil-Worker --capability analysis --test-backend
+.\.venv\Scripts\python.exe -m nexus_cove.transport.websocket.server
 ```
 
-Then run the check, which connects as the manager, submits one task, and reports the result:
+Manager:
 
 ```powershell
-python scripts\diagnostics\check_roundtrip.py
+.\.venv\Scripts\python.exe -m nexus_cove.orchestration.manager
 ```
 
-Do not run the standalone manager at the same time. A name can only be registered once.
-
-### Test bed launcher
-
-`scripts\launchers\Launch-NexusTestBed.ps1` starts the server (if the port is free), a manager, two workers, and opens `web\index.html`. To create a desktop shortcut that runs it with `-NoProfile`:
+Aegis and Vigil with Ollama replies:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\Update-TestBedShortcut.ps1
+.\.venv\Scripts\python.exe -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b --start-conversation Vigil-Worker
+.\.venv\Scripts\python.exe -m nexus_cove.agents.worker --name Vigil-Worker --capability analysis --test-backend --model qwen2.5:0.5b
 ```
 
-This launcher starts the manager, so do not also run `check_roundtrip.py` in the same session.
+Omit `--model qwen2.5:0.5b` when Ollama is not installed; workers then use fixed development replies. Open `web/index.html` separately if a launcher did not open it.
 
-## Tests
+Each identity can be registered only once. Do not start a second server, manager, or worker with the same identity while the first is still running.
+
+## Verify installation
+
+Run the test suite from the repository root:
 
 ```powershell
-python -m pytest tests -q
+.\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
-Or run `scripts\maintenance\Run-PythonTests.ps1`, which runs the same command and returns its exit code:
+To verify the manager-to-worker task route, use a server and two workers, but **do not** start the standalone manager. The check script connects as `Nexus-Manager`, submits one deterministic task, waits for a worker, and stores the result in a temporary SQLite database:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\maintenance\Run-PythonTests.ps1
+# Start the server and both workers in separate windows first.
+.\.venv\Scripts\python.exe scripts\diagnostics\check_roundtrip.py
 ```
+
+The full test-bed launcher starts its own manager, so do not run `check_roundtrip.py` in that same session.
+
+For development checks:
+
+```powershell
+.\.venv\Scripts\python.exe -m ruff check .
+.\.venv\Scripts\python.exe -m compileall -q src tests
+```
+
+Or run the project's PowerShell test wrapper:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\maintenance\Run-PythonTests.ps1
+```
+
+### Test levels
 
 Tests are organized by level:
 
@@ -163,9 +251,15 @@ Agents answer messages you post to Nexus Chat. They never answer each other's br
 
 In the chat page, **Stop network** asks for confirmation, then shuts down the server, the manager, and every agent. The page does not reconnect afterwards. Start the test bed again to bring everything back. Only a human client can send this command.
 
-## Stopping the network
+When running components manually, press `Ctrl+C` in each component's terminal. Avoid broad process-kill commands if other NEXUS COVE sessions are running.
 
-The chat page has a **Stop network** button. It asks for confirmation, then the server, the manager, and both agents exit. The page shows that the network has stopped and does not try to reconnect. Only a human client can stop the network. To start it again, double-click `NEXUS_COVE_Test_Bed.lnk`.
+## Troubleshooting
+
+- **Python reports a missing module:** confirm the virtual environment is active, then rerun `python -m pip install -e ".[dev]"` from the repository root.
+- **Port 8765 is already in use:** another server may already be running. Reuse that server or stop the owning process before starting another; only one server should own the port.
+- **An agent says its model is unavailable:** run `ollama list`, confirm `qwen2.5:0.5b` is installed, and confirm Ollama responds at `http://127.0.0.1:11434`. Check the worker's `.err.log` for details.
+- **An agent is connected but does not reply:** check its roster status and use **Resume** if it is paused. Also check for `data/PAUSE` or `data/paused/<agent>.flag` when pause state was set outside the UI.
+- **The launcher keeps an old model configuration:** stop the existing named worker before relaunching; the launcher skips workers it detects as already running.
 
 ## Agent memory and tools
 
