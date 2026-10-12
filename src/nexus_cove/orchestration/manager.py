@@ -8,6 +8,7 @@ from typing import Any
 
 from nexus_cove.agents.pause import is_paused
 from nexus_cove.core.dialogue import DialogueGuard
+from nexus_cove.core.exceptions import AgentUnavailable
 from nexus_cove.core.models import Agent, AgentStatus, Task, TaskResult, TaskStatus
 from nexus_cove.core.protocols import decode_message, encode_message, task_to_payload
 from nexus_cove.observability.metrics import RuntimeMetrics
@@ -62,11 +63,23 @@ class Manager:
     async def submit(self, task: Task) -> str:
         if self.websocket is None:
             raise RuntimeError("Manager is not connected")
+        try:
+            agent = self.scheduler.select(task, self.registry.all())
+        except AgentUnavailable:
+            log.warning(
+                "task rejected: no agent available",
+                extra={"task_id": task.task_id, "event": "task_rejected"},
+            )
+            self.tasks.add(task)
+            self.tasks.set_status(task.task_id, TaskStatus.FAILED)
+            self.storage.record_task(task, TaskStatus.FAILED.value)
+            self.metrics.record_submission()
+            self.metrics.record_result(0.0, False)
+            raise
         self.tasks.add(task)
         self.tasks.set_status(task.task_id, TaskStatus.QUEUED)
         self.storage.record_task(task, TaskStatus.QUEUED.value)
         self.metrics.record_submission()
-        agent = self.scheduler.select(task, self.registry.all())
         agent.current_load += 1
         agent.status = AgentStatus.BUSY
         self.tasks.assign(task.task_id, agent.agent_id)
