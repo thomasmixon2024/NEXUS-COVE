@@ -21,6 +21,8 @@ AGENT_SENDER_KINDS = frozenset({"agent", "manager"})
 AGENT_MESSAGE_INTERVAL_SECONDS = 20.0
 FEED_HISTORY_SIZE = 200
 MANAGER_ID = "Nexus-Manager"
+# None: non-browser clients (no Origin header). "null": file:// pages.
+ALLOWED_ORIGINS: tuple[str | None, ...] = (None, "null")
 
 
 @dataclass(slots=True)
@@ -419,7 +421,9 @@ class CoveWebSocketServer:
     # ------------------------------------------------------------------
     async def start(self) -> None:
         logger.info("Starting WebSocket server on ws://%s:%s", self.host, self.port)
-        async with websockets.serve(self.handler, self.host, self.port):
+        async with websockets.serve(
+            self.handler, self.host, self.port, origins=list(ALLOWED_ORIGINS)
+        ):
             await self._stop_event.wait()  # returns when a stop command arrives
 
     async def stop(self) -> None:
@@ -454,3 +458,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
