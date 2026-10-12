@@ -82,12 +82,12 @@ try {
     if (Test-AgentRunning '--name Aegis-Worker') {
         Write-LaunchLog 'INFO' 'Aegis-Worker already running; not starting another.'
     } else {
-        Start-Hidden -Name 'Aegis-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Aegis-Worker', '--test-backend', '--uri', $uri, '--model', 'llama3.2:3b', '--start-conversation', 'Vigil-Worker')
+        Start-Hidden -Name 'Aegis-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Aegis-Worker', '--test-backend', '--uri', $uri, '--model', 'qwen2.5:0.5b', '--start-conversation', 'Vigil-Worker')
     }
     if (Test-AgentRunning '--name Vigil-Worker') {
         Write-LaunchLog 'INFO' 'Vigil-Worker already running; not starting another.'
     } else {
-        Start-Hidden -Name 'Vigil-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Vigil-Worker', '--capability', 'analysis', '--test-backend', '--uri', $uri, '--model', 'llama3.2:3b')
+        Start-Hidden -Name 'Vigil-Worker' -ArgList @('-m', 'nexus_cove.agents.worker', '--name', 'Vigil-Worker', '--capability', 'analysis', '--test-backend', '--uri', $uri, '--model', 'qwen2.5:0.5b')
     }
 
     # 3. Browser GUI

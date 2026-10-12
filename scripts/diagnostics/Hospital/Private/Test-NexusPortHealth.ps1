@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+#Requires -Version 7
 function Test-NexusPortHealth {
     <#
     .SYNOPSIS
@@ -9,6 +9,7 @@ function Test-NexusPortHealth {
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
+
     param(
         [Parameter()]
         [int]$Port = 8765,
@@ -42,14 +43,16 @@ function Test-NexusPortHealth {
         }
         $client.Close()
         $client.Dispose()
-    }
-    catch {
+
+}
+
+        catch {
         $tcpError = $_.Exception.Message
     }
 
     $status = if ($listening -and $tcpReachable) { 'Healthy' }
-              elseif ($listening -and -not $tcpReachable) { 'Degraded' }
-              else { 'Critical' }
+        elseif ($listening -and -not $tcpReachable) { 'Degraded' }
+        else { 'Critical' }
 
     [pscustomobject]@{
         PSTypeName     = 'NexusCove.Hospital.PortHealth'

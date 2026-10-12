@@ -59,7 +59,7 @@ pwsh -NoProfile -File scripts\diagnostics\Check-Agents.ps1 -Probe
 
 ## Module layout
 
-```
+```text
 Hospital/
 ├── NexusCove.Hospital.psd1
 ├── NexusCove.Hospital.psm1

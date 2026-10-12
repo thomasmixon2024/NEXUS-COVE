@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" width="180" alt="NEXUS COVE logo">
+  <img src="assets/logo.png" alt="NEXUS COVE logo" width="192">
 </p>
 
 <h1 align="center">NEXUS COVE</h1>
@@ -16,6 +16,12 @@ NEXUS COVE runs a WebSocket server on your machine so that a manager, one or mor
 
 The server binds to `127.0.0.1` by default and has **no authentication or encryption**. Do not expose it to a network. See [SECURITY.md](SECURITY.md).
 
+## What's New
+
+- Aegis and Vigil use the locally installed Ollama model `qwen2.5:0.5b` for chat replies in the standard startup scripts. Human-to-agent replies remain immediate.
+- Agent-to-agent direct messages are paced centrally: the next message is delivered no sooner than 20 seconds after the previous one. A message sent before then is rejected with a retry delay.
+- The existing HTML chat interface is unchanged.
+
 ## Status
 
 **Implemented and covered by tests**
@@ -27,7 +33,7 @@ The server binds to `127.0.0.1` by default and has **no authentication or encryp
 
 **Not implemented**
 
-- Real model execution. The only bundled backend is deterministic and exists for development and tests.
+- LLM-backed task execution. Assigned tasks use the deterministic development backend; optional Ollama models are used for chat replies only.
 - Authentication, TLS, and access control.
 - Agent autonomy: long-running agents that register on every launch, and agent reasoning.
 - Saved chat history and a monitoring view that separates agent traffic from human traffic.
@@ -124,8 +130,8 @@ Tests are organized by level:
 Workers started with `--model <name>` answer direct messages with a local model served by [Ollama](https://ollama.com). The model must be running on `127.0.0.1:11434`. Replies are generated only on your machine.
 
 ```powershell
-ollama pull llama3.2:3b
-python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model llama3.2:3b
+ollama pull qwen2.5:0.5b
+python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b
 ```
 
 To stop every agent from replying, create the file `data\PAUSE`. Delete it to resume:
@@ -135,7 +141,7 @@ New-Item -ItemType File -Force data\PAUSE      # pause
 Remove-Item data\PAUSE                     # resume
 ```
 
-Agent-to-agent replies are limited to 10 per partner every 5 minutes; a message from a human resets the limit.
+Agent-to-agent direct messages are spaced at least 20 seconds apart globally. The dialogue guard also limits agent replies to 10 per partner every 5 minutes; messages from a human reset that per-partner reply limit.
 
 ## Agent personalities and conversation starter
 

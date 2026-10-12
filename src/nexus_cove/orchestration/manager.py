@@ -10,10 +10,10 @@ from nexus_cove.agents.pause import is_paused
 from nexus_cove.core.dialogue import DialogueGuard
 from nexus_cove.core.models import Agent, AgentStatus, Task, TaskResult, TaskStatus
 from nexus_cove.core.protocols import decode_message, encode_message, task_to_payload
+from nexus_cove.observability.metrics import RuntimeMetrics
 from nexus_cove.orchestration.registry import AgentRegistry
 from nexus_cove.orchestration.scheduler import CapabilityLoadScheduler
 from nexus_cove.orchestration.task_registry import TaskRegistry
-from nexus_cove.observability.metrics import RuntimeMetrics
 from nexus_cove.utils.reconnection import ExponentialBackoff
 
 log = logging.getLogger("nexus_cove.manager")
@@ -95,9 +95,7 @@ class Manager:
                 output=raw.get("output"),
                 error=raw.get("error"),
                 metadata=raw.get("metadata") or {},
-                measured_duration_seconds=(
-                    float(measured) if measured is not None else None
-                ),
+                measured_duration_seconds=(float(measured) if measured is not None else None),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"invalid task_result payload: {exc}") from exc
@@ -230,7 +228,6 @@ class Manager:
 
 
 def main() -> None:
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--uri", default="ws://127.0.0.1:8765")
     parser.add_argument("--db", default="data/cove.db")

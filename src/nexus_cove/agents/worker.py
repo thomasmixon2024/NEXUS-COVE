@@ -162,7 +162,6 @@ class Worker:
         for task in list(self._inflight):
             task.cancel()
 
-
     async def _execute_assigned_task(self, ws, message: dict) -> None:
         """Execute a task_assign payload off the listener so control stays responsive."""
         task_data = message.get("task")
@@ -290,7 +289,6 @@ class Worker:
             )
         )
 
-
     async def _on_direct_message(self, ws, message: dict) -> None:
         sender = message.get("sender", "Unknown")
         msg_content = message.get("message", "")
@@ -323,7 +321,11 @@ class Worker:
         if sender != self.agent.agent_id:
             self._record("received", sender, msg_content)
         # Answer group messages from humans only.
-        if message.get("sender_kind") == "html_client" and not is_agent_paused(self.agent.agent_id):
+        if (
+            message.get("sender_kind") == "html_client"
+            and not sender.startswith("user_")
+            and not is_agent_paused(self.agent.agent_id)
+        ):
             self._spawn(self._answer_group(ws, sender, msg_content))
 
     async def _on_control(self, ws, message: dict) -> bool:
@@ -408,12 +410,14 @@ class Worker:
                     "WebSocket connection closed, attempting reconnection",
                     extra={"event": "connection_closed"},
                 )
+
             except Exception as e:
                 # Unexpected error, log and attempt to reconnect
                 log.error(
                     "Unexpected error in WebSocket worker",
                     extra={"event": "worker_error", "error": str(e)},
                 )
+
             finally:
                 if starter_task is not None:
                     starter_task.cancel()
@@ -468,7 +472,7 @@ def main() -> None:
     parser.add_argument(
         "--model",
         default=None,
-        help="Ollama model for direct-message replies, e.g. llama3.2:3b. Omit for fixed replies.",
+        help="Ollama model for direct-message replies, e.g. qwen2.5:0.5b. Omit for fixed replies.",
     )
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     parser.add_argument(

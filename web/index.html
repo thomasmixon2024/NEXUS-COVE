@@ -18,7 +18,7 @@
 
     <!-- Main Container -->
     <div class="w-full max-w-5xl bg-slate-800 rounded-xl shadow-2xl overflow-hidden border border-slate-700 flex flex-col md:flex-row h-[85vh]">
-        
+
         <!-- Sidebar: User Info & Online Users -->
         <div class="w-full md:w-1/3 bg-slate-850 p-4 border-b md:border-b-0 md:border-r border-slate-700 flex flex-col justify-between">
             <div>
@@ -128,6 +128,7 @@
             // expressive scales how far context moves the voice: Vigil reacts most, Aegis least.
             "Aegis-Worker": { prefer: ["Guy", "Davis", "Andrew", "Christopher"], pitch: 1.0, rate: 0.95, expressive: 0.6 },
             "Vigil-Worker": { prefer: ["Aria", "Jenny", "Emma", "Michelle"], pitch: 1.0, rate: 1.05, expressive: 1.5 },
+            "Elon-Worker": { prefer: ["Guy", "Christopher", "David", "English (United States)"], pitch: 0.82, rate: 0.92, expressive: 0.35 },
             "Nexus-Manager": { prefer: ["Brian", "Roger", "Steffan", "Eric"], pitch: 1.0, rate: 1.0, expressive: 0.8 },
         };
         let speechOn = false;
@@ -155,7 +156,7 @@
             ws.onopen = () => {
                 connectionStatus.textContent = "Connected";
                 connectionStatus.className = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-300 border border-emerald-700/50";
-                
+
                 // If user was previously registered, re-register on reconnect
                 if (myUsername) {
                     sendRegistration(myUsername);
@@ -256,7 +257,7 @@
 
         function selectChatTarget(target) {
             activeTarget = target;
-            
+
             // Highlight active button
             const allButtons = userList.querySelectorAll("button");
             allButtons.forEach(btn => btn.className = "w-full text-left px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-between text-slate-300 hover:bg-slate-700/50 transition-colors");
@@ -355,10 +356,18 @@
         }
 
         // Only the three named agents are spoken. Human messages are never read aloud.
+// Only the named agents are spoken. Human messages are never read aloud.
         function speakAgent(sender, text) {
             if (!speechOn || !window.speechSynthesis) return;
             const cfg = AGENT_VOICES[sender];
             if (!cfg) return;
+
+            // Elon-Worker vocal rhythm pre-processor for natural pauses
+            if (sender === 'Elon-Worker') {
+                text = text.replace(/[:;—]/g, '... ');
+                text = text.replace(/\b(first principles|physics|bottleneck|orders of magnitude|fundamentally)\b/gi, '... $1');
+            }
+
             const voice = pickVoice(cfg);
             for (const sentence of splitSentences(text)) {
                 const expression = expressionFor(sentence, cfg);
@@ -404,7 +413,14 @@
             }
             stopRequested = true;
             if (window.speechSynthesis) speechSynthesis.cancel();
-            ws.send(JSON.stringify({ version: 1, action: 'control', target: 'all', command: 'stop' }));
+            ws.send(JSON.stringify({
+                version: 1,
+                action: 'control',
+                sender: myUsername,
+                sender_kind: 'html_client',
+                target: 'all',
+                command: 'stop'
+            }));
             appendSystemMessage('Stop sent. The network is shutting down.');
         }
 
@@ -413,7 +429,14 @@
                 appendSystemMessage('Not connected: the command was not sent.');
                 return;
             }
-            ws.send(JSON.stringify({ version: 1, action: 'control', target: target, command: command }));
+            ws.send(JSON.stringify({
+                version: 1,
+                action: 'control',
+                sender: myUsername,
+                sender_kind: 'html_client',
+                target: target,
+                command: command
+            }));
             const who = target === 'all' ? 'all agents' : '@' + target;
             appendSystemMessage(`${command === 'pause' ? 'Pause' : 'Resume'} sent to ${who}.`);
         }
@@ -492,6 +515,7 @@
                     version: 1,
                     action: "broadcast",
                     sender: myUsername,
+                    sender_kind: "html_client",
                     message: message
                 }));
             } else {
@@ -499,6 +523,7 @@
                     version: 1,
                     action: "direct_message",
                     sender: myUsername,
+                    sender_kind: "html_client",
                     recipient: activeTarget,
                     message: message
                 }));

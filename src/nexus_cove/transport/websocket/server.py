@@ -6,6 +6,7 @@ import logging
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
+from time import monotonic
 from typing import Any
 
 import websockets
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 PROTOCOL_VERSION = 1
 # Messages from these sender kinds are agent-to-agent traffic and go to the public feed.
 AGENT_SENDER_KINDS = frozenset({"agent", "manager"})
+AGENT_MESSAGE_INTERVAL_SECONDS = 20.0
 FEED_HISTORY_SIZE = 200
 MANAGER_ID = "Nexus-Manager"
 
@@ -37,6 +39,7 @@ class CoveWebSocketServer:
         self.clients: dict[str, Client] = {}
         self.connected_users: dict[str, str] = {}  # identity -> kind
         self._feed: deque[dict] = deque(maxlen=FEED_HISTORY_SIZE)
+        self._last_agent_message_at: float | None = None
         self._stop_event = asyncio.Event()
         self._chatlog = ChatLog(chat_log_path())
 
@@ -129,8 +132,18 @@ class CoveWebSocketServer:
 
         existing = self.clients.get(identity)
         if existing is not None and existing.websocket is not websocket:
-            await self._send_error(websocket, f"Identity '{identity}' is already in use")
-            return
+            try:
+                is_open = existing.websocket.state.name == "OPEN"
+            except AttributeError:
+                is_open = True  # conservative: assume alive if state isn't readable
+            if is_open:
+                await self._send_error(websocket, f"Identity '{identity}' is already in use")
+                return
+            # Dead socket still occupies the slot; evict it. The old _handle_client
+            # finally block will call unregister(), which is a no-op once evicted.
+            logger.warning("Evicting dead registration for %s", identity)
+            self.clients.pop(identity, None)
+            self.connected_users.pop(identity, None)
 
         capabilities = frozenset(str(c) for c in (data.get("capabilities") or []))
         if identity == MANAGER_ID:
@@ -276,6 +289,22 @@ class CoveWebSocketServer:
             await self._send_error(websocket, f"User '{recipient}' not found")
             return
         sender_kind = self.clients[sender].kind
+        is_agent_conversation = (
+            sender_kind in AGENT_SENDER_KINDS and target.kind in AGENT_SENDER_KINDS
+        )
+        if is_agent_conversation:
+            now = monotonic()
+            if self._last_agent_message_at is not None:
+                elapsed = now - self._last_agent_message_at
+                if elapsed < AGENT_MESSAGE_INTERVAL_SECONDS:
+                    retry_after = AGENT_MESSAGE_INTERVAL_SECONDS - elapsed
+                    await self._send_error(
+                        websocket,
+                        "Agent-to-agent messages must be at least 20 seconds apart; "
+                        f"retry in {retry_after:.2f} seconds",
+                    )
+                    return
+            self._last_agent_message_at = now
         text = data.get("message", "")
         await self._send(
             target.websocket,
@@ -355,19 +384,32 @@ class CoveWebSocketServer:
             return_exceptions=True,
         )
 
+    @staticmethod
+    def _is_temporary_identity(identity: str) -> bool:
+        return identity.startswith("user_")
+
     async def _broadcast_user_list(self) -> None:
         if not self.clients:
             return
+        visible_users = [
+            (identity, kind)
+            for identity, kind in self.connected_users.items()
+            if not self._is_temporary_identity(identity)
+        ]
         await self._send_to_all(
             {
                 "action": "user_list",
                 "users": [
                     {
-                        "identity": i,
-                        "kind": k,
-                        "paused": bool(self.clients[i].paused) if i in self.clients else False,
+                        "identity": identity,
+                        "kind": kind,
+                        "paused": (
+                            bool(self.clients[identity].paused)
+                            if identity in self.clients
+                            else False
+                        ),
                     }
-                    for i, k in self.connected_users.items()
+                    for identity, kind in visible_users
                 ],
             }
         )

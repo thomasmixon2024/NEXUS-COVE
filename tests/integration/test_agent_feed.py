@@ -5,6 +5,7 @@ import json
 
 import websockets
 
+import nexus_cove.transport.websocket.server as server_module
 from nexus_cove.transport.websocket.server import CoveWebSocketServer
 
 
@@ -22,6 +23,17 @@ async def _frames(ws, seconds: float) -> list[dict]:
 
 def _feed(frames: list[dict]) -> list[dict]:
     return [f for f in frames if f.get("action") == "agent_feed"]
+
+
+async def _next_action(ws, action: str, timeout: float = 3.0) -> dict:
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        remaining = deadline - asyncio.get_running_loop().time()
+        if remaining <= 0:
+            raise AssertionError(f"no {action} frame received")
+        frame = json.loads(await asyncio.wait_for(ws.recv(), remaining))
+        if frame.get("action") == action:
+            return frame
 
 
 def test_feed_shows_agent_traffic_to_browsers_only() -> None:
@@ -122,6 +134,91 @@ def test_feed_shows_agent_traffic_to_browsers_only() -> None:
                     replay = _feed(await _frames(late, 1.0))
                     assert [f["kind"] for f in replay] == ["direct"], replay
                     assert all(f.get("replay") is True for f in replay), replay
+        finally:
+            instance.close()
+            await instance.wait_closed()
+
+    asyncio.run(scenario())
+
+
+def test_agent_direct_messages_are_spaced_by_twenty_seconds(monkeypatch) -> None:
+    now = [0.0]
+    monkeypatch.setattr(server_module, "monotonic", lambda: now[0], raising=False)
+
+    async def scenario() -> None:
+        server = CoveWebSocketServer(port=18772)
+        instance = await websockets.serve(server.handler, "127.0.0.1", 18772)
+        try:
+            uri = "ws://127.0.0.1:18772"
+            async with (
+                websockets.connect(uri) as aegis,
+                websockets.connect(uri) as vigil,
+            ):
+                for ws, identity in ((aegis, "Aegis-Worker"), (vigil, "Vigil-Worker")):
+                    await ws.send(
+                        json.dumps({"version": 1, "action": "register", "agent_id": identity})
+                    )
+                    while True:
+                        frame = json.loads(await asyncio.wait_for(ws.recv(), 1.0))
+                        if (
+                            frame.get("action") == "registered"
+                            and frame.get("identity") == identity
+                        ):
+                            break
+
+                await aegis.send(
+                    json.dumps(
+                        {
+                            "version": 1,
+                            "action": "direct_message",
+                            "recipient": "Vigil-Worker",
+                            "message": "first",
+                        }
+                    )
+                )
+                first = await _next_action(vigil, "direct_message")
+                assert first["message"] == "first"
+
+                await vigil.send(
+                    json.dumps(
+                        {
+                            "version": 1,
+                            "action": "direct_message",
+                            "recipient": "Aegis-Worker",
+                            "message": "too soon",
+                        }
+                    )
+                )
+                rejected = await _next_action(vigil, "error")
+                assert "at least 20 seconds apart" in rejected["error"]
+
+                now[0] = 19.999
+                await aegis.send(
+                    json.dumps(
+                        {
+                            "version": 1,
+                            "action": "direct_message",
+                            "recipient": "Vigil-Worker",
+                            "message": "still too soon",
+                        }
+                    )
+                )
+                rejected = await _next_action(aegis, "error")
+                assert "at least 20 seconds apart" in rejected["error"]
+
+                now[0] = 20.0
+                await vigil.send(
+                    json.dumps(
+                        {
+                            "version": 1,
+                            "action": "direct_message",
+                            "recipient": "Aegis-Worker",
+                            "message": "interval elapsed",
+                        }
+                    )
+                )
+                allowed = await _next_action(aegis, "direct_message")
+                assert allowed["message"] == "interval elapsed"
         finally:
             instance.close()
             await instance.wait_closed()

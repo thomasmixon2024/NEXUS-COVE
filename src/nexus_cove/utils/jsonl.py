@@ -27,7 +27,7 @@ def iter_jsonl(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def read_jsonl_tail(path: Path, limit: int) -> list[dict[str, Any]]:
-    """Return the last ``limit`` valid JSON objects without loading the whole file into a list first."""
+    """Return the last ``limit`` valid JSON objects without loading the whole file first."""
     if limit < 1 or not path.is_file():
         return []
     tail: deque[str] = deque(maxlen=limit)

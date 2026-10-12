@@ -60,7 +60,7 @@ All of the above must exit 0.
 ## Code layout reminders
 
 | Package | Responsibility |
-|---------|----------------|
+| --- | --- |
 | `core/` | Domain models, protocol, exceptions. No I/O. |
 | `orchestration/` | Manager, scheduler, registries. No direct SQL. |
 | `agents/` | Worker lifecycle and backends. |
