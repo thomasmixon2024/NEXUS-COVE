@@ -67,7 +67,9 @@ class Worker:
         await ws.send(encode_message("presence", paused=is_agent_paused(self.agent.agent_id)))
 
     async def _announce(self, ws, text: str) -> None:
-        await ws.send(encode_message("broadcast", sender=self.agent.agent_id, message=text))
+        await ws.send(
+            encode_message("broadcast", sender=self.agent.agent_id, message=text, kind="system")
+        )
 
     async def _group_reply(self, sender: str, msg_content: str) -> str | None:
         if self._replier is None:
@@ -318,7 +320,7 @@ class Worker:
             f"Received broadcast from {sender}: {msg_content}",
             extra={"event": "broadcast_received"},
         )
-        if sender != self.agent.agent_id:
+        if sender != self.agent.agent_id and message.get("kind") != "system":
             self._record("received", sender, msg_content)
         # Answer group messages from humans only.
         if (
