@@ -192,12 +192,14 @@ class CoveWebSocketServer:
         sender_kind = self.clients[sender].kind
         text = data.get("message", "")
         self._chatlog.append("group", sender, sender_kind, None, text)
+        kind = "system" if data.get("kind") == "system" and sender_kind == "agent" else "chat"
         await self._send_to_all(
             {
                 "action": "broadcast",
                 "sender": sender,
                 "sender_kind": sender_kind,
                 "message": text,
+                "kind": kind,
             }
         )
 
