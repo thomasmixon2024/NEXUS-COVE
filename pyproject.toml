@@ -33,6 +33,7 @@ where = ["src"]
 "nexus_cove.agents" = ["personalities/*.toml"]
 
 [tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra"
 testpaths = ["tests"]
 asyncio_mode = "auto"
