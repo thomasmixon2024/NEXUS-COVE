@@ -9,7 +9,7 @@ description = "Local multi-agent orchestration framework with explicit task, tra
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = { text = "All Rights Reserved" }
-dependencies = ["websockets>=16,<17"]
+dependencies = ["websockets>=16,<18"]
 
 [project.optional-dependencies]
 dev = [
