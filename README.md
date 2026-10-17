@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/logo.png" alt="NEXUS COVE logo" width="192">
+  <img src="assets/NEXUS-COVE-LOGO.png" alt="NEXUS COVE logo" width="192">
 </p>
 
 <h1 align="center">NEXUS COVE</h1>
 
 <p align="center">
-  A local multi-agent orchestration framework with explicit task, transport, storage, and observability boundaries.
+  Local multi-agent orchestration framework with explicit task, transport, storage, and observability boundaries.
 </p>
 
 ---
@@ -14,13 +14,14 @@
 
 NEXUS COVE runs a WebSocket server on your machine so that a manager, one or more workers, and browser clients can exchange structured messages. The manager submits tasks, the scheduler assigns them to capable workers, workers execute them through a backend, and results are stored in SQLite. A browser GUI provides live chat between named clients.
 
-The server binds to `127.0.0.1` by default and has **no authentication or encryption**. Do not expose it to a network. See [SECURITY.md](SECURITY.md).
+The server binds to `127.0.0.1` by default and has **no authentication or encryption**. Do not expose it to a network.
 
 ## What's New
 
 - Aegis and Vigil use the locally installed Ollama model `qwen2.5:0.5b` for chat replies in the standard startup scripts. Human-to-agent replies remain immediate.
 - Agent-to-agent direct messages are paced centrally: the next message is delivered no sooner than 20 seconds after the previous one. A message sent before then is rejected with a retry delay.
 - The existing HTML chat interface is unchanged.
+- COVE-MEM semantic/episodic memory framework under `src/nexus_cove/memory/` with JSONL and SQLite backends.
 
 ## Status
 
@@ -29,16 +30,17 @@ The server binds to `127.0.0.1` by default and has **no authentication or encryp
 - WebSocket server (protocol version 1) with named registration, broadcast, direct messages, and structured error replies for missing versions, unknown recipients, and duplicate names.
 - Worker registration by agent ID with capabilities, task assignment, execution through the deterministic backend, and result return to the manager.
 - SQLite persistence of tasks and results, and in-process metrics based on measured durations.
-- Browser GUI (`web/index.html`) for registration, the roster, broadcasts, and direct messages. The server appends delivered chat messages to `logs/nexus_chat.jsonl`; the browser can download a chat-log copy.
+- Browser GUI (`web/index.html`) for registration, the roster, broadcasts, and direct messages.
 - Optional Ollama-backed agent chat replies. The model is used for conversation, not assigned task execution.
 - A global 20-second minimum between agent-to-agent direct-message deliveries, plus a per-partner reply limit.
+- COVE-MEM memory framework: episodic and semantic memory, JSONL and SQLite backends, memory bridge, and configuration round-trip.
 
 **Not implemented**
 
 - Model-backed execution of assigned tasks. Workers use the deterministic development backend and do not turn chat messages into tasks automatically.
 - Authentication, TLS, and access control.
 - A production execution backend or deployment configuration.
-- An open-source license. See [License](#license) and [LICENSE](LICENSE).
+- An open-source license. All rights are reserved.
 
 Tests are the authoritative evidence for the status above. Run them to confirm it on your machine.
 
@@ -51,11 +53,9 @@ Tests are the authoritative evidence for the status above. Run them to confirm i
 - Local TCP port `8765` available for the WebSocket server. The server binds to `127.0.0.1` by default.
 - **Optional for model-generated chat replies:** [Ollama](https://ollama.com/download) installed and running locally. The standard agent launcher uses `qwen2.5:0.5b`; this model must be downloaded before agents can use it.
 
-NEXUS COVE does not require Ollama for the server, browser chat, or deterministic task round-trip checks. Without `--model`, workers use fixed development replies. Do not expose the unauthenticated server beyond loopback; see [SECURITY.md](SECURITY.md).
+NEXUS COVE does not require Ollama for the server, browser chat, or deterministic task round-trip checks. Without `--model`, workers use fixed development replies. Do not expose the unauthenticated server beyond loopback.
 
 ## Get the source
-
-If you have access to the private GitHub repository, clone it and move into the project root:
 
 ```powershell
 git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
@@ -92,27 +92,27 @@ This is the recommended Windows path for running the browser chat with the manag
 
 1. Install and start Ollama if you want model-generated agent replies. In PowerShell, check the service and download the configured model:
 
-  ```powershell
-  ollama --version
-  ollama list
-  ollama pull qwen2.5:0.5b
-  ```
+   ```powershell
+   ollama --version
+   ollama list
+   ollama pull qwen2.5:0.5b
+   ```
 
-  Ollama should answer locally at `http://127.0.0.1:11434`. If `ollama list` does not show `qwen2.5:0.5b`, the agents cannot use it. Ollama is not required when you intentionally want fixed development replies.
+   Ollama should answer locally at `http://127.0.0.1:11434`. If `ollama list` does not show `qwen2.5:0.5b`, the agents cannot use it. Ollama is not required when you intentionally want fixed development replies.
 
 2. From the repository root, launch the test bed:
 
-  ```powershell
-  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-  .\.venv\Scripts\Activate.ps1
-  powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Launch-NexusTestBed.ps1
-  ```
+   ```powershell
+   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+   .\.venv\Scripts\Activate.ps1
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Launch-NexusTestBed.ps1
+   ```
 
-  Activate the environment first because the launcher starts children by resolving `python` from `PATH`. The launcher starts the WebSocket server if port `8765` is free, then starts a manager, Aegis-Worker, and Vigil-Worker as hidden processes. Both workers use `qwen2.5:0.5b`; Aegis starts a conversation with Vigil at five-minute intervals. The browser page opens at the end.
+   Activate the environment first because the launcher starts children by resolving `python` from `PATH`. The launcher starts the WebSocket server if port `8765` is free, then starts a manager, Aegis-Worker, and Vigil-Worker as hidden processes. Both workers use `qwen2.5:0.5b`; Aegis starts a conversation with Vigil at five-minute intervals. The browser page opens at the end.
+
+   The launcher reuses an existing server and skips workers when it finds a process with the same name. If you changed a worker's model or startup options, stop that worker first and then run the launcher again; otherwise it may reuse the old process.
 
 3. In the browser, wait for **Connected**, register a human username, and use Nexus Chat for a group message or an agent row's **DM** control for a private message. Agent-to-agent direct messages are spaced at least 20 seconds apart; human-to-agent replies are not delayed by that limit.
-
-The launcher reuses an existing server and skips workers when it finds a process with the same name. If you changed a worker's model or startup options, stop that worker first and then run the launcher again; otherwise it may reuse the old process.
 
 To create a desktop shortcut for the full test bed, run:
 
@@ -120,7 +120,7 @@ To create a desktop shortcut for the full test bed, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Update-TestBedShortcut.ps1
 ```
 
-The shortcut uses the project icon from `assets/logo.ico`, generated from `assets/logo.png`. Before opening the browser, the launcher checks that Ollama and `qwen2.5:0.5b` are available and waits for the manager and both active workers to register.
+The shortcut uses the project icon from `assets/NEXUS-COVE-LOGO.ico`. Before opening the browser, the launcher checks that Ollama and `qwen2.5:0.5b` are available and waits for the manager and both active workers to register.
 
 Worker and server output is written under `logs/`: `server.out.log`, `manager.out.log`, `Aegis-Worker.out.log`, `Vigil-Worker.out.log`, and matching `.err.log` files. `launcher.log` records startup checks and failures.
 
@@ -314,6 +314,7 @@ Every message is a JSON object with `"version": 1` and an `action` field. Messag
 
 ```
 assets/                     logo and other images
+config/                     reserved for future external configuration
 docs/                       architecture, decisions, operations, audit, history
 scripts/
   diagnostics/              manual checks (round trip, connection check)
@@ -323,6 +324,7 @@ src/nexus_cove/
   core/                     domain models, protocol, exceptions (no I/O)
   orchestration/            manager, scheduler, registries
   agents/                   worker lifecycle and execution backends
+  memory/                   COVE-MEM semantic/episodic memory framework
   transport/websocket/      WebSocket server and connection handling
   storage/                  persistence interface and SQLite implementation
   observability/            structured logging and runtime metrics
@@ -339,11 +341,12 @@ Dependency direction is inward: transport and storage depend on `core`, and `cor
 - [Local development and security notes](docs/operations/local-development.md)
 - [Architecture decisions](docs/decisions/)
 - [Roadmap](docs/roadmap/phase-3.md)
-- [Contributor and engineering contract](CLAUDE.md)
+- [Contributor and engineering protocol](CLAUDE.md)
+- [Agent guidelines](AGENTS.md)
 
 ## Contributing
 
-Read [CLAUDE.md](CLAUDE.md) first. It defines the layering rules, testing policy, and definition of done. Changes should include tests, pass `python -m ruff check .` and `python -m compileall -q src tests`, and keep the documentation accurate.
+Read [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md) first. They define the layering rules, testing policy, and definition of done. Changes should include tests, pass `python -m ruff check .` and `python -m compileall -q src tests`, and keep the documentation accurate.
 
 ## License
 
