@@ -89,7 +89,7 @@ Warming up model...
 
 Want to run it on Android? We wrote the whole playbook for it.
 
-👉 [Read the Termux + Ollama Setup Guide](docs/operations/)
+👉 [Read the Termux + Ollama Setup Guide](docs/operations/termux-ollama.md)
 
 ---
 
