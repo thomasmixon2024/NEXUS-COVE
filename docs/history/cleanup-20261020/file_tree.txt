@@ -1,0 +1,619 @@
+.
+|-- AGENTS.md
+|-- AGENT_INVOCATIONS.md
+|-- AGENT_INVOCATIONS_README.md
+|-- CHANGELOG.md
+|-- CHECKPOINT_AGENT_INVOCATIONS.md
+|-- CLAUDE-UPDATE.zip
+|-- CLAUDE.md
+|-- CLAUDE.md.bad-20261013T210941Z
+|-- CLAUDE.md.bak-20261013T211116Z
+|-- CLAUDE.md.bak-20261013T214846Z
+|-- CLAUDE.md.bak-20261013T214848Z
+|-- CLAUDE.md.bak-20261013T215057Z
+|-- CLAUDE.md.bak-20261013T215431Z
+|-- CLAUDE.md.bak-20261013T220342Z
+|-- CLAUDE.md.bak-20261013T221512Z
+|-- CLAUDE.md.bak-20261013T230917Z
+|-- CLAUDE.md.bak-20261014T010817Z
+|-- CLAUDE.md.bak-20261014T011110Z
+|-- CLAUDE.md.bak-20261014T011156Z
+|-- CLAUDE.md.bak-20261014T012247Z
+|-- CLAUDE.md.bak-20261014T012605Z
+|-- CLAUDE.md.bak-20261014T013123Z
+|-- CLAUDE.md.bak-20261014T013236Z
+|-- CLAUDE.md.bak-20261014T014023Z
+|-- CLAUDE.md.bak-20261014T015037Z
+|-- CLAUDE.md.bak-20261014T015307Z
+|-- CLAUDE.md.bak-20261014T020340Z
+|-- CLAUDE.md.bak-20261014T020722Z
+|-- CLAUDE.md.bak-20261014T020823Z
+|-- CLAUDE.md.bak-20261014T020948Z
+|-- CLAUDE.md.bak-20261014T021032Z
+|-- CLAUDE.md.bak-20261014T021629Z
+|-- CLAUDE.md.bak-20261014T021751Z
+|-- CLAUDE.md.bak-20261014T021820Z
+|-- CLAUDE.md.bak-20261014T022435Z
+|-- CLAUDE.md.bak-20261014T022520Z
+|-- CLAUDE.md.bak-20261014T022541Z
+|-- CLAUDE.md.bak-20261014T022622Z
+|-- CLAUDE.md.bak-20261014T022924Z
+|-- CLAUDE.md.new-behavioral-contract
+|-- CODE_OF_CONDUCT.md
+|-- CONTRIBUTING.md
+|-- Claude_Latest
+|   |-- CLAUDE-FABLE-5.md
+|   |-- CLAUDE-OPUS-5.5.md
+|   |-- CLAUDE.md
+|   |-- CLAUDE.md.bad-20261013T210941Z
+|   |-- CLAUDE.md.bak-20261013T211116Z
+|   |-- CLAUDE.md.bak-20261013T214846Z
+|   |-- CLAUDE.md.bak-20261013T214848Z
+|   |-- CLAUDE.md.bak-20261013T215057Z
+|   |-- CLAUDE.md.bak-20261013T215431Z
+|   |-- CLAUDE.md.bak-20261013T220342Z
+|   |-- CLAUDE.md.bak-20261013T221512Z
+|   |-- CLAUDE.md.bak-20261013T230917Z
+|   |-- CLAUDE.md.bak-20261014T010817Z
+|   |-- CLAUDE.md.bak-20261014T011110Z
+|   |-- CLAUDE.md.bak-20261014T011156Z
+|   |-- CLAUDE.md.bak-20261014T012247Z
+|   |-- CLAUDE.md.bak-20261014T012605Z
+|   |-- CLAUDE.md.bak-20261014T013123Z
+|   |-- CLAUDE.md.bak-20261014T013236Z
+|   |-- CLAUDE.md.bak-20261014T014023Z
+|   |-- CLAUDE.md.bak-20261014T015037Z
+|   |-- CLAUDE.md.bak-20261014T015307Z
+|   |-- CLAUDE.md.bak-20261014T020340Z
+|   |-- CLAUDE.md.bak-20261014T020722Z
+|   |-- CLAUDE.md.bak-20261014T020823Z
+|   |-- CLAUDE.md.bak-20261014T020948Z
+|   |-- CLAUDE.md.bak-20261014T021032Z
+|   |-- CLAUDE.md.bak-20261014T021629Z
+|   |-- CLAUDE.md.bak-20261014T021751Z
+|   |-- CLAUDE.md.bak-20261014T021820Z
+|   |-- CLAUDE.md.bak-20261014T022435Z
+|   |-- CLAUDE.md.bak-20261014T022520Z
+|   |-- CLAUDE.md.bak-20261014T022541Z
+|   |-- CLAUDE.md.bak-20261014T022622Z
+|   |-- CLAUDE.md.bak-20261014T022924Z
+|   |-- CLAUDE.md.new-behavioral-contract
+|   |-- CLAUDE.md.old
+|   |-- CLAUDE_BASE
+|   |-- Claude\ Management.zip
+|   |-- Claude-4.1.txt
+|   |-- Claude-4.5-Opus.txt
+|   |-- Claude-Design-Sys-Prompt.txt
+|   |-- Claude-Fable-5.1.md
+|   |-- Claude-Opus-4.7.txt
+|   |-- Claude_4.txt
+|   |-- Claude_Code_03-04-24.md
+|   |-- Claude_Opus_4.6.txt
+|   |-- Claude_Sonnet-4.5_Sep-29-2025.txt
+|   |-- Claude_Sonnet_3.5.md
+|   |-- Claude_Sonnet_3.7_New.txt
+|   |-- Setup-ClaudeCodeCapabilities-Termux.ps1
+|   |-- Setup-ClaudeCodeCapabilities.ps1
+|   |-- claude-api.md
+|   |-- claude-md-improver
+|   |   |-- SKILL.md
+|   |   `-- references
+|   |       |-- quality-criteria.md
+|   |       |-- templates.md
+|   |       `-- update-guidelines.md
+|   |-- claude-md-improver-example.png
+|   |-- claude-md-management
+|   |   |-- LICENSE
+|   |   |-- README.md
+|   |   |-- claude-md-improver-example.png
+|   |   |-- commands
+|   |   |   `-- revise-claude-md.md
+|   |   |-- revise-claude-md-example.png
+|   |   `-- skills
+|   |       `-- claude-md-improver
+|   |           |-- SKILL.md
+|   |           `-- references
+|   |               |-- quality-criteria.md
+|   |               |-- templates.md
+|   |               `-- update-guidelines.md
+|   |-- claude-settings.json
+|   |-- claude_chromium_config
+|   |-- claude_optional_plugins_config
+|   |   |-- OPTIONAL_PLUGINS.md
+|   |   `-- settings_optional_plugins.json
+|   |-- claude_optional_skills_config
+|   |   |-- OPTIONAL_SKILLS.md
+|   |   `-- settings_optional_skills.json
+|   |-- claude_required_plugins_config
+|   |   |-- REQUIRED_PLUGINS.md
+|   |   `-- settings_required_plugins.json
+|   |-- claude_required_skills_config
+|   |   |-- REQUIRED_SKILLS.md
+|   |   `-- settings_required_skills.json
+|   |-- revise-claude-md-example.png
+|   `-- revise-claude-md.md
+|-- Claude_Latest.7z.001
+|-- Diagnose-NexusCove.ps1
+|-- Diagnostics
+|   `-- Test-CoveDatabase.ps1
+|-- ENGINEERING_CONTRACT.md.bak-20261018T132808Z
+|-- ENGINEERING_CONTRACT.md.bak-20261018T133030Z
+|-- ENGINEERING_CONTRACT.md.bak-20261018T133426Z
+|-- HARDWIRED_AGENT_CAPABILITIES.md
+|-- LICENSE
+|-- Launch-NexusTestBed.ps1
+|-- Logs
+|   |-- nexus_chat.jsonl
+|   |-- run_20261013T154103Z.log
+|   `-- run_20261013T154355Z.log
+|-- MEMORY_ENHANCEMENTS.md
+|-- Monitor-NexusCoveDebug.ps1
+|-- NEXUS-COVE-1.0.code-workspace
+|-- NEXUS_COVE_SYSTEM_ANALYSIS.md
+|-- NexusCove_Skills_Plugins_Installers_v3
+|   |-- 01_install_chromium.sh
+|   |-- 02_setup_required_skills.sh
+|   |-- 03_setup_required_plugins.sh
+|   |-- 04_setup_optional_skills.sh
+|   |-- 05_setup_optional_plugins.sh
+|   |-- Logs
+|   |   |-- chromium_install_20261019_015555.log
+|   |   |-- chromium_install_20261019_015907.log
+|   |   |-- chromium_install_20261019_020037.log
+|   |   |-- chromium_install_20261019_020108.log
+|   |   `-- chromium_install_20261019_020520.log
+|   |-- NexusCove_Skills_Plugins_Installers_v3
+|   |-- README.md
+|   |-- claude_chromium_config
+|   |-- common.sh
+|   `-- run_all.sh
+|-- NexusCove_Skills_Plugins_Installers_v3\ (1)
+|   `-- NexusCove_Skills_Plugins_Installers_v3
+|-- README-UPDATED.md
+|-- README.md
+|-- SECURITY.md
+|-- Setup_NEXUS.ps1
+|-- Start-NexusCove.ps1
+|-- agent-invocations
+|   |-- nexus-architect
+|   |   `-- AGENT.md
+|   |-- nexus-debug
+|   |   `-- AGENT.md
+|   |-- nexus-docs-ops
+|   |   `-- AGENT.md
+|   `-- nexus-validator
+|       `-- AGENT.md
+|-- assets
+|   |-- NEXUS-COVE-LOGO.ico
+|   |-- NEXUS-COVE-LOGO.jpg
+|   |-- NEXUS-COVE-LOGO.png
+|   |-- logo.ico
+|   `-- logo.png
+|-- claude_optional_plugins_config
+|   |-- OPTIONAL_PLUGINS.md
+|   `-- settings_optional_plugins.json
+|-- claude_optional_skills_config
+|   |-- OPTIONAL_SKILLS.md
+|   `-- settings_optional_skills.json
+|-- claude_required_plugins_config
+|   |-- REQUIRED_PLUGINS.md
+|   `-- settings_required_plugins.json
+|-- claude_required_skills_config
+|   |-- REQUIRED_SKILLS.md
+|   `-- settings_required_skills.json
+|-- config
+|   `-- README.md
+|-- data
+|-- docs
+|   |-- architecture
+|   |   `-- overview.md
+|   |-- audit
+|   |   |-- AUDIT_FINDINGS.md
+|   |   |-- source-inventory.md
+|   |   `-- verification.md
+|   |-- decisions
+|   |   |-- ADR-0001-canonical-tree.md
+|   |   |-- ADR-0002-no-fake-telemetry.md
+|   |   |-- ADR-0003-control-authorization.md
+|   |   `-- ADR-0004-chat-log-retention.md
+|   |-- history
+|   |   |-- IMPLEMENTATION_REPORT.md
+|   |   |-- README_FIXES.md
+|   |   `-- REFACTOR_REPORT.md
+|   |-- operations
+|   |   |-- development.md
+|   |   |-- github-publish.md
+|   |   `-- local-development.md
+|   |-- roadmap
+|   |   `-- phase-3.md
+|   `-- superpowers
+|       `-- plans
+|           `-- 2026-10-19-cleanup-update.md
+|-- file_tree.txt
+|-- logs
+|   `-- nexus_chat.jsonl
+|-- nc.zip
+|-- nexus_cove_latest.7z.001
+|-- nexus_cove_latest.7z.002
+|-- pyproject.toml
+|-- reference
+|   |-- README.md
+|   `-- geology.csv
+|-- run_tests.sh
+|-- scripts
+|   |-- autonomy
+|   |   |-- atomic_write.sh
+|   |   `-- hooks
+|   |       `-- block-redirect-writes.sh
+|   |-- diagnostics
+|   |   |-- Check-Agents.ps1
+|   |   |-- Hospital
+|   |   |   |-- Invoke-NexusHospital.ps1
+|   |   |   |-- NexusCove.Hospital.psd1
+|   |   |   |-- NexusCove.Hospital.psm1
+|   |   |   |-- Private
+|   |   |   |   |-- Get-NexusLogTriage.ps1
+|   |   |   |   |-- Get-NexusProcessInventory.ps1
+|   |   |   |   |-- Invoke-NexusAgentProbe.ps1
+|   |   |   |   |-- New-NexusHealthReport.ps1
+|   |   |   |   `-- Test-NexusPortHealth.ps1
+|   |   |   |-- Public
+|   |   |   |   `-- Invoke-NexusHospital.ps1
+|   |   |   `-- README.md
+|   |   |-- Invoke-PortCleaner.ps1
+|   |   |-- ask_agent.py
+|   |   |-- check_cove.py
+|   |   |-- check_roundtrip.py
+|   |   `-- grant_knowledge.py
+|   |-- launchers
+|   |   |-- Launch-NexusTestBed.ps1
+|   |   |-- Update-TestBedShortcut.ps1
+|   |   `-- run_messenger.bat
+|   `-- maintenance
+|       `-- Run-PythonTests.ps1
+|-- settings.json.bak-20261013T230917Z
+|-- settings.json.bak-20261014T002312Z
+|-- settings.json.bak-20261014T002327Z
+|-- settings.json.bak-20261014T002700Z
+|-- settings.json.bak-20261014T002947Z
+|-- src
+|   |-- nexus_cove
+|   |   |-- __init__.py
+|   |   |-- __pycache__
+|   |   |   |-- __init__.cpython-313.pyc
+|   |   |   `-- __init__.cpython-314.pyc
+|   |   |-- agents
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |-- knowledge.cpython-313.pyc
+|   |   |   |   |-- knowledge.cpython-314.pyc
+|   |   |   |   |-- memory.cpython-313.pyc
+|   |   |   |   |-- memory.cpython-314.pyc
+|   |   |   |   |-- pause.cpython-313.pyc
+|   |   |   |   |-- pause.cpython-314.pyc
+|   |   |   |   |-- personality.cpython-313.pyc
+|   |   |   |   |-- personality.cpython-314.pyc
+|   |   |   |   |-- starter.cpython-313.pyc
+|   |   |   |   |-- starter.cpython-314.pyc
+|   |   |   |   |-- tools.cpython-313.pyc
+|   |   |   |   |-- tools.cpython-314.pyc
+|   |   |   |   |-- worker.cpython-313.pyc
+|   |   |   |   `-- worker.cpython-314.pyc
+|   |   |   |-- backends
+|   |   |   |   |-- __init__.py
+|   |   |   |   |-- __pycache__
+|   |   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |   |-- base.cpython-313.pyc
+|   |   |   |   |   |-- base.cpython-314.pyc
+|   |   |   |   |   |-- deterministic_backend.cpython-313.pyc
+|   |   |   |   |   |-- deterministic_backend.cpython-314.pyc
+|   |   |   |   |   |-- ollama_replier.cpython-313.pyc
+|   |   |   |   |   `-- ollama_replier.cpython-314.pyc
+|   |   |   |   |-- base.py
+|   |   |   |   |-- deterministic_backend.py
+|   |   |   |   `-- ollama_replier.py
+|   |   |   |-- knowledge.py
+|   |   |   |-- memory.py
+|   |   |   |-- pause.py
+|   |   |   |-- personalities
+|   |   |   |   |-- Aegis-Worker.toml
+|   |   |   |   |-- Elon-Worker.toml
+|   |   |   |   `-- Vigil-Worker.toml
+|   |   |   |-- personality.py
+|   |   |   |-- starter.py
+|   |   |   |-- tools.py
+|   |   |   `-- worker.py
+|   |   |-- api
+|   |   |   |-- __init__.py
+|   |   |   `-- __pycache__
+|   |   |       |-- __init__.cpython-313.pyc
+|   |   |       `-- __init__.cpython-314.pyc
+|   |   |-- config
+|   |   |   |-- __init__.py
+|   |   |   `-- __pycache__
+|   |   |       |-- __init__.cpython-313.pyc
+|   |   |       `-- __init__.cpython-314.pyc
+|   |   |-- core
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |-- dialogue.cpython-313.pyc
+|   |   |   |   |-- dialogue.cpython-314.pyc
+|   |   |   |   |-- exceptions.cpython-313.pyc
+|   |   |   |   |-- exceptions.cpython-314.pyc
+|   |   |   |   |-- models.cpython-313.pyc
+|   |   |   |   |-- models.cpython-314.pyc
+|   |   |   |   |-- protocols.cpython-313.pyc
+|   |   |   |   `-- protocols.cpython-314.pyc
+|   |   |   |-- dialogue.py
+|   |   |   |-- exceptions.py
+|   |   |   |-- models.py
+|   |   |   `-- protocols.py
+|   |   |-- observability
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |-- chatlog.cpython-313.pyc
+|   |   |   |   |-- chatlog.cpython-314.pyc
+|   |   |   |   |-- logging.cpython-313.pyc
+|   |   |   |   |-- logging.cpython-314.pyc
+|   |   |   |   |-- metrics.cpython-313.pyc
+|   |   |   |   `-- metrics.cpython-314.pyc
+|   |   |   |-- chatlog.py
+|   |   |   |-- logging.py
+|   |   |   `-- metrics.py
+|   |   |-- orchestration
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |-- manager.cpython-313.pyc
+|   |   |   |   |-- manager.cpython-314.pyc
+|   |   |   |   |-- registry.cpython-313.pyc
+|   |   |   |   |-- registry.cpython-314.pyc
+|   |   |   |   |-- scheduler.cpython-313.pyc
+|   |   |   |   |-- scheduler.cpython-314.pyc
+|   |   |   |   |-- task_registry.cpython-313.pyc
+|   |   |   |   `-- task_registry.cpython-314.pyc
+|   |   |   |-- manager.py
+|   |   |   |-- registry.py
+|   |   |   |-- scheduler.py
+|   |   |   `-- task_registry.py
+|   |   |-- py.typed
+|   |   |-- storage
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |   |-- interface.cpython-313.pyc
+|   |   |   |   |-- interface.cpython-314.pyc
+|   |   |   |   |-- sqlite.cpython-313.pyc
+|   |   |   |   `-- sqlite.cpython-314.pyc
+|   |   |   |-- interface.py
+|   |   |   `-- sqlite.py
+|   |   |-- transport
+|   |   |   |-- __init__.py
+|   |   |   |-- __pycache__
+|   |   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |   `-- __init__.cpython-314.pyc
+|   |   |   `-- websocket
+|   |   |       |-- __init__.py
+|   |   |       |-- __pycache__
+|   |   |       |   |-- __init__.cpython-313.pyc
+|   |   |       |   |-- __init__.cpython-314.pyc
+|   |   |       |   |-- server.cpython-313.pyc
+|   |   |       |   `-- server.cpython-314.pyc
+|   |   |       `-- server.py
+|   |   `-- utils
+|   |       |-- __init__.py
+|   |       |-- __pycache__
+|   |       |   |-- __init__.cpython-313.pyc
+|   |       |   |-- __init__.cpython-314.pyc
+|   |       |   |-- jsonl.cpython-313.pyc
+|   |       |   |-- jsonl.cpython-314.pyc
+|   |       |   |-- reconnection.cpython-313.pyc
+|   |       |   `-- reconnection.cpython-314.pyc
+|   |       |-- jsonl.py
+|   |       `-- reconnection.py
+|   `-- nexus_cove.egg-info
+|       |-- PKG-INFO
+|       |-- SOURCES.txt
+|       |-- dependency_links.txt
+|       |-- entry_points.txt
+|       |-- requires.txt
+|       `-- top_level.txt
+|-- terminal-dashboard
+|-- tests
+|   |-- __init__.py
+|   |-- __pycache__
+|   |   |-- __init__.cpython-313.pyc
+|   |   `-- __init__.cpython-314.pyc
+|   |-- e2e
+|   |   |-- __init__.py
+|   |   |-- __pycache__
+|   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |-- test_manager_worker.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_manager_worker.cpython-313.pyc
+|   |   |   |-- test_manager_worker.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_manager_worker.cpython-314.pyc
+|   |   |   |-- test_process_exit_status.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_process_exit_status.cpython-313.pyc
+|   |   |   |-- test_process_exit_status.cpython-314-pytest-9.0.2.pyc
+|   |   |   `-- test_process_exit_status.cpython-314.pyc
+|   |   |-- test_manager_worker.py
+|   |   `-- test_process_exit_status.py
+|   |-- fixtures
+|   |   |-- __init__.py
+|   |   `-- __pycache__
+|   |       |-- __init__.cpython-313.pyc
+|   |       `-- __init__.cpython-314.pyc
+|   |-- integration
+|   |   |-- __init__.py
+|   |   |-- __pycache__
+|   |   |   |-- __init__.cpython-313.pyc
+|   |   |   |-- __init__.cpython-314.pyc
+|   |   |   |-- test_agent_feed.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_agent_feed.cpython-313.pyc
+|   |   |   |-- test_agent_feed.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_agent_feed.cpython-314.pyc
+|   |   |   |-- test_chat_log.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_chat_log.cpython-313.pyc
+|   |   |   |-- test_chat_log.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_chat_log.cpython-314.pyc
+|   |   |   |-- test_direct_message_kind.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_direct_message_kind.cpython-313.pyc
+|   |   |   |-- test_direct_message_kind.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_direct_message_kind.cpython-314.pyc
+|   |   |   |-- test_network_stop.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_network_stop.cpython-313.pyc
+|   |   |   |-- test_network_stop.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_network_stop.cpython-314.pyc
+|   |   |   |-- test_ollama_replier.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_ollama_replier.cpython-313.pyc
+|   |   |   |-- test_ollama_replier.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_ollama_replier.cpython-314.pyc
+|   |   |   |-- test_origin_policy.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_origin_policy.cpython-313.pyc
+|   |   |   |-- test_origin_policy.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_origin_policy.cpython-314.pyc
+|   |   |   |-- test_pause_cancels_reply.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_pause_cancels_reply.cpython-313.pyc
+|   |   |   |-- test_pause_cancels_reply.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_pause_cancels_reply.cpython-314.pyc
+|   |   |   |-- test_presence.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_presence.cpython-313.pyc
+|   |   |   |-- test_presence.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_presence.cpython-314.pyc
+|   |   |   |-- test_storage_boundary.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_storage_boundary.cpython-313.pyc
+|   |   |   |-- test_storage_boundary.cpython-314-pytest-9.0.2.pyc
+|   |   |   |-- test_storage_boundary.cpython-314.pyc
+|   |   |   |-- test_websocket_transport.cpython-313-pytest-8.4.2.pyc
+|   |   |   |-- test_websocket_transport.cpython-313.pyc
+|   |   |   |-- test_websocket_transport.cpython-314-pytest-9.0.2.pyc
+|   |   |   `-- test_websocket_transport.cpython-314.pyc
+|   |   |-- test_agent_feed.py
+|   |   |-- test_chat_log.py
+|   |   |-- test_direct_message_kind.py
+|   |   |-- test_network_stop.py
+|   |   |-- test_ollama_replier.py
+|   |   |-- test_origin_policy.py
+|   |   |-- test_pause_cancels_reply.py
+|   |   |-- test_presence.py
+|   |   |-- test_storage_boundary.py
+|   |   `-- test_websocket_transport.py
+|   `-- unit
+|       |-- __init__.py
+|       |-- __pycache__
+|       |   |-- __init__.cpython-313.pyc
+|       |   `-- __init__.cpython-314.pyc
+|       |-- agents
+|       |   |-- __init__.py
+|       |   |-- __pycache__
+|       |   |   |-- __init__.cpython-313.pyc
+|       |   |   |-- __init__.cpython-314.pyc
+|       |   |   |-- test_agent_pause.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_agent_pause.cpython-313.pyc
+|       |   |   |-- test_agent_pause.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_agent_pause.cpython-314.pyc
+|       |   |   |-- test_backend.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_backend.cpython-313.pyc
+|       |   |   |-- test_backend.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_backend.cpython-314.pyc
+|       |   |   |-- test_knowledge.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_knowledge.cpython-313.pyc
+|       |   |   |-- test_knowledge.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_knowledge.cpython-314.pyc
+|       |   |   |-- test_memory_and_tools.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_memory_and_tools.cpython-313.pyc
+|       |   |   |-- test_memory_and_tools.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_memory_and_tools.cpython-314.pyc
+|       |   |   |-- test_pause.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_pause.cpython-313.pyc
+|       |   |   |-- test_pause.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_pause.cpython-314.pyc
+|       |   |   |-- test_personality.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_personality.cpython-313.pyc
+|       |   |   |-- test_personality.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_personality.cpython-314.pyc
+|       |   |   |-- test_starter.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_starter.cpython-313.pyc
+|       |   |   |-- test_starter.cpython-314-pytest-9.0.2.pyc
+|       |   |   `-- test_starter.cpython-314.pyc
+|       |   |-- test_agent_pause.py
+|       |   |-- test_backend.py
+|       |   |-- test_knowledge.py
+|       |   |-- test_memory_and_tools.py
+|       |   |-- test_pause.py
+|       |   |-- test_personality.py
+|       |   `-- test_starter.py
+|       |-- core
+|       |   |-- __init__.py
+|       |   |-- __pycache__
+|       |   |   |-- __init__.cpython-313.pyc
+|       |   |   |-- __init__.cpython-314.pyc
+|       |   |   |-- test_dialogue.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_dialogue.cpython-313.pyc
+|       |   |   |-- test_dialogue.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_dialogue.cpython-314.pyc
+|       |   |   |-- test_models.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_models.cpython-313.pyc
+|       |   |   |-- test_models.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_models.cpython-314.pyc
+|       |   |   |-- test_protocols.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_protocols.cpython-313.pyc
+|       |   |   |-- test_protocols.cpython-314-pytest-9.0.2.pyc
+|       |   |   `-- test_protocols.cpython-314.pyc
+|       |   |-- test_dialogue.py
+|       |   |-- test_models.py
+|       |   `-- test_protocols.py
+|       |-- orchestration
+|       |   |-- __init__.py
+|       |   |-- __pycache__
+|       |   |   |-- __init__.cpython-313.pyc
+|       |   |   |-- __init__.cpython-314.pyc
+|       |   |   |-- test_manager_submit.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_manager_submit.cpython-313.pyc
+|       |   |   |-- test_manager_submit.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_manager_submit.cpython-314.pyc
+|       |   |   |-- test_scheduler.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_scheduler.cpython-313.pyc
+|       |   |   |-- test_scheduler.cpython-314-pytest-9.0.2.pyc
+|       |   |   |-- test_scheduler.cpython-314.pyc
+|       |   |   |-- test_task_registry.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_task_registry.cpython-313.pyc
+|       |   |   |-- test_task_registry.cpython-314-pytest-9.0.2.pyc
+|       |   |   `-- test_task_registry.cpython-314.pyc
+|       |   |-- test_manager_submit.py
+|       |   |-- test_scheduler.py
+|       |   `-- test_task_registry.py
+|       |-- storage
+|       |   |-- __init__.py
+|       |   |-- __pycache__
+|       |   |   |-- __init__.cpython-313.pyc
+|       |   |   |-- __init__.cpython-314.pyc
+|       |   |   |-- test_sqlite.cpython-313-pytest-8.4.2.pyc
+|       |   |   |-- test_sqlite.cpython-313.pyc
+|       |   |   |-- test_sqlite.cpython-314-pytest-9.0.2.pyc
+|       |   |   `-- test_sqlite.cpython-314.pyc
+|       |   `-- test_sqlite.py
+|       `-- transport
+|           |-- __init__.py
+|           |-- __pycache__
+|           |   |-- __init__.cpython-313.pyc
+|           |   |-- __init__.cpython-314.pyc
+|           |   |-- test_server_protocol.cpython-313-pytest-8.4.2.pyc
+|           |   |-- test_server_protocol.cpython-313.pyc
+|           |   |-- test_server_protocol.cpython-314-pytest-9.0.2.pyc
+|           |   `-- test_server_protocol.cpython-314.pyc
+|           `-- test_server_protocol.py
+`-- web
+    `-- index.html
+
+103 directories, 514 files

@@ -52,3 +52,44 @@ scripts/maintenance/Setup-NEXUS/Logs/
 
 # Pre-commit
 .pre-commit-cache/
+.enforce-test
+.claude/backups/
+.claude/settings.json.bak.*
+.claude/memory/current_checkpoint.json
+.claude/memory/session_checkpoints.jsonl
+.claude/memory/__pycache__/
+Logs/
+install_*.log
+.nexus-cove/
+*.7z.*
+CLAUDE-UPDATE.zip
+nc.zip
+.venv-termux/
+
+# ─── .claude runtime state (regenerable) ───
+.claude/backups/
+.claude/skills/
+.claude/settings.json.bak.*
+.claude/memory/current_checkpoint.json
+.claude/memory/session_checkpoints.jsonl
+.claude/memory/SESSION_COMPLETE_SUMMARY.md
+.claude/memory/__pycache__/
+
+# ─── installer artifacts ───
+Logs/
+install_*.log
+.nexus-cove/
+
+# ─── caches / venvs ───
+.pytest_cache/
+.ruff_cache/
+.venv/
+.venv-termux/
+
+# ─── dead archives ───
+*.7z.*
+CLAUDE-UPDATE.zip
+nc.zip
+
+# ─── CI test marker ───
+.enforce-test
