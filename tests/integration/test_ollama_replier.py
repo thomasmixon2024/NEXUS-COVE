@@ -11,7 +11,18 @@ from nexus_cove.agents.backends.ollama_replier import (
     MAX_REPLY_CHARS,
     ModelUnavailable,
     OllamaReplier,
+    default_system_prompt,
 )
+
+
+def ollama_available() -> bool:
+    """Check if Ollama daemon is reachable at the default URL."""
+    import urllib.request
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/tags", timeout=2) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 class _StubHandler(BaseHTTPRequestHandler):
@@ -97,3 +108,22 @@ def test_short_reply_is_untouched() -> None:
     from nexus_cove.agents.backends.ollama_replier import _fit
 
     assert _fit("A complete short reply.") == "A complete short reply."
+
+
+@pytest.mark.skipif(not ollama_available(), reason="Ollama not installed")
+def test_ollama_replier_termux_integration() -> None:
+    """Termux-compatible integration test with real Ollama daemon.
+
+    Uses qwen2.5:0.5b model (~400 MB) which fits in constrained RAM environments.
+    """
+    model = "qwen2.5:0.5b"
+    replier = OllamaReplier(model, default_system_prompt("TestAgent"))
+    reply = replier.reply("TestAgent says: hello from Termux")
+
+    # Basic sanity checks on the reply
+    assert isinstance(reply, str)
+    assert len(reply) > 0
+    assert len(reply) <= MAX_REPLY_CHARS
+    # Should be a coherent response, not an error message
+    assert "error" not in reply.lower()
+    assert "fail" not in reply.lower()
