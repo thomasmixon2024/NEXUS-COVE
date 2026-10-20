@@ -93,3 +93,4 @@ nc.zip
 
 # ─── CI test marker ───
 .enforce-test
+.claude/
