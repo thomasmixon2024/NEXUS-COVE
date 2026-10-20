@@ -44,9 +44,36 @@ If it runs on Android, it'll run on your toaster.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (The 10-Second Setup)
 
-### 1. Prerequisites
+**Don't worry, you don't need to be a DevOps wizard to try this.** We built a one-click script that does *everything* for you (starts Ollama, pulls the model, installs dependencies, and runs the test).
+
+```bash
+git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
+cd NEXUS-COVE
+./run_demo.sh
+```
+
+**Expected Output:**
+
+```text
+🚀 Initializing NEXUS-COVE...
+⏳ Starting Ollama in the background...
+📥 Ensuring qwen2.5:0.5b model is downloaded...
+📦 Installing Python dependencies...
+🧠 Running the verification test...
+✅ Ollama reachable
+Warming up model...
+✅ PASS — measured latency: 1.57s
+   Reply: "Hello! You're testing Termux..."
+```
+
+<details>
+<summary><b>🛠️ Prefer to do it manually? Click here to expand.</b></summary>
+
+<br>
+
+**1. Prerequisites**
 
 You need [Ollama](https://ollama.com/) installed and running on your host machine.
 
@@ -58,7 +85,7 @@ ollama serve
 ollama pull qwen2.5:0.5b
 ```
 
-### 2. Install NEXUS-COVE
+**2. Install NEXUS-COVE**
 
 Clone the repo and install it in editable mode:
 
@@ -68,24 +95,17 @@ cd NEXUS-COVE
 pip install -e ".[dev]"
 ```
 
-### 3. Run the Verification Test
-
-Prove it works right out of the box. This script spins up an agent, warms up the model, and measures latency:
+**3. Run the Verification Test**
 
 ```bash
 python tests/termux_ollama_test.py
 ```
 
-**Expected Output:**
+</details>
 
-```text
-✅ Ollama reachable
-Warming up model...
-✅ PASS — measured latency: 1.57s
-   Reply: "Hello! You're testing Termux..."
-```
+---
 
-### 4. Mobile / Termux Setup
+## 📱 Mobile / Termux Setup
 
 Want to run it on Android? We wrote the whole playbook for it.
 
@@ -101,6 +121,7 @@ NEXUS-COVE/
 ├── src/nexus_cove/        # Core framework
 │   └── agents/backends/   # LLM integrations (Ollama)
 ├── tests/                 # Pytest suite & standalone scripts
+├── run_demo.sh            # One-click verification script
 └── pyproject.toml         # PEP 621 packaging
 ```
 
