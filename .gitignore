@@ -94,3 +94,9 @@ nc.zip
 # ─── CI test marker ───
 .enforce-test
 .claude/
+.patch-backups/
+*.tar.gz
+
+# Local Backups
+.patch-backups/
+*.tar.gz
