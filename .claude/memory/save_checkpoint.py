@@ -18,7 +18,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -99,8 +99,10 @@ def build_auto(session_id, state, prev):
         origin = None
     return {
         "task_description": prev.get("task_description", "Session ended (no manual summary)"),
-        "accomplishments": [f"Auto record at session end. Last commit: {state['last_commit'] or 'none'}",
-                            f"{len(state['changed'])} uncommitted change(s) at session end"],
+        "accomplishments": [
+            f"Auto record at session end. Last commit: {state['last_commit'] or 'none'}",
+            f"{len(state['changed'])} uncommitted change(s) at session end",
+        ],
         "next_steps": prev.get("next_steps", []),
         "metadata": {"files_modified": files},
         "source": "auto",
@@ -155,7 +157,9 @@ def main():
     args = ap.parse_args()
 
     # Only the SessionEnd hook (--auto) sends JSON on stdin; manual runs must not block on it.
-    session_id = (stdin_session_id() if args.auto else None) or os.getenv("CLAUDE_SESSION_ID", "unknown")
+    session_id = (
+        stdin_session_id() if args.auto else None
+    ) or os.getenv("CLAUDE_SESSION_ID", "unknown")
     state = git_state()
     try:
         data = (build_auto(session_id, state, last_checkpoint() or {}) if args.auto
@@ -163,7 +167,7 @@ def main():
         if data is None:
             print("No change since the last automatic checkpoint; nothing saved")
             return 0
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         data["timestamp"] = now.isoformat()
         data["checkpoint_id"] = f"cp_{now:%Y%m%d_%H%M%S}"
         write_checkpoint(data)

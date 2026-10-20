@@ -3,11 +3,23 @@
 <!-- BEGIN session-continuity (managed by install.py; edit the file in the patch, not here) -->
 ## Session Start and End (required, every session)
 
-**Start.** A SessionStart hook runs `python3 .claude/initialize_session.py`; its output appears in your context under "SESSION CONTINUITY GUIDE". If it is missing, run that command yourself. CLAUDE.md is already loaded, so do not `cat` it. Open your first reply with the last task, the first next step, and the "Checkpoint vs repo" line (MATCHES, CHANGED, DIVERGED or UNKNOWN). Ask only if the checkpoint conflicts with the user's request.
+**Start.** A SessionStart hook runs `python3 .claude/initialize_session.py` (use `python` on Windows). Its output appears in your context under "SESSION CONTINUITY GUIDE". If that output is missing, run the command yourself once. CLAUDE.md is already loaded, so do not read it again. Open your first reply with the last task, the first next step, and the "Checkpoint vs repo" line (MATCHES, CHANGED, DIVERGED or UNKNOWN). Ask only if the checkpoint conflicts with the user's request.
 
-**End.** When a significant task finishes, save a manual checkpoint: write a JSON file outside the repo (for example `/tmp/checkpoint.json`) with `task_description` (string), `accomplishments` (list of strings) and `next_steps` (list of strings), then run `python3 .claude/memory/save_checkpoint.py --file /tmp/checkpoint.json`. A SessionEnd hook also records git facts automatically, but it cannot describe your work, so the manual checkpoint is required.
+**End.** When a significant task finishes, save a manual checkpoint. Write a JSON file to the OS temp directory containing `task_description` (string), `accomplishments` (list of strings) and `next_steps` (list of strings). Then run `python3 .claude/memory/save_checkpoint.py --file <that path>` (use `python` on Windows). The SessionEnd hook records git facts automatically but cannot describe your work, so the manual checkpoint is required.
 
-**Shell on Termux/Ubuntu** (the commands under "Development commands" are PowerShell):
+**Shell setup.** The commands under "Development commands" are PowerShell syntax. Use the block for your environment.
+
+Windows (PowerShell, repo root):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m pytest -q; if ($LASTEXITCODE -ne 0) { throw "tests failed" }
+python -m compileall -q src tests
+```
+
+Termux/Ubuntu (bash, repo root):
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
@@ -121,7 +133,7 @@ A change is NOT done until all applicable items are true:
 5. Integration/e2e coverage exists when a boundary or workflow changed.
 6. Tests pass with a non-zero exit code on failure.
 7. `python -m compileall -q src tests` passes.
-8. Ruff passes when installed.
+8. `python -m ruff check .` passes. If Ruff is not installed, report the check as NOT RUN, not as passed.
 9. Documentation matches the implementation.
 10. No status document claims functionality that is not implemented and verified.
 11. Security implications were considered.
@@ -132,7 +144,42 @@ Never use words such as `complete`, `production-ready`, or `verified` unless the
 
 ## Session Continuity
 
-To begin the next session focused on agent memory, simply run:
-  python .claude/initialize_session.py
+The SessionStart hook loads the continuity guide automatically, showing where the last session left off and what to work on next. Run `python3 .claude/initialize_session.py` manually only if the hook output is missing.
 
-This will load your session continuity guide showing exactly where we left off and what to work on next.
+### Hook Details
+
+**SessionStart** (`.claude/initialize_session.py`): Loads the latest checkpoint from `.claude/memory/current_checkpoint.json` and the append-only journal `.claude/memory/session_checkpoints.jsonl`. Reports:
+- Checkpoint ID, timestamp, source (auto/manual)
+- Task description, accomplishments, next steps
+- Files touched in the previous session
+- Git state comparison: `MATCHES`, `CHANGED - N new commit(s)`, `DIVERGED`, or `UNKNOWN`
+
+**SessionEnd** (`.claude/memory/save_checkpoint.py --auto`): Saves an auto-checkpoint capturing:
+- Current git HEAD, branch, last commit, and changed files (excludes `.claude/memory/`)
+- Carries forward the last manual task description and next steps
+- Skips if identical to previous auto-checkpoint (no new changes)
+
+**Manual Checkpoint**:
+```bash
+cat > /tmp/my_checkpoint.json << 'EOF'
+{"task_description": "implemented feature X", "accomplishments": ["did A", "did B"], "next_steps": ["test C"]}
+EOF
+python3 .claude/memory/save_checkpoint.py --file /tmp/my_checkpoint.json
+```
+
+## Available Skills (Project-Local)
+
+These skills are installed in `.claude/skills/` and managed by `NexusCove_Skills_Plugins_Installers_v3/04_setup_optional_skills.sh`:
+
+- `project-context` — Load Nexus Cove project context: architecture, ADRs, common commands, key files. Use at session start or when context is lost.
+- `dataviz` — Design-system-agnostic data visualization method (palette validator, mark specs, interaction rules). Use before creating any chart, graph, plot, or dashboard.
+- `claude-api` — Reference for the Claude API / Anthropic SDK: model IDs, pricing, params, streaming, tool use, MCP, agents, caching, token counting, model migration.
+- `run` — Launch and drive this project's app to verify changes work in the real app (not just tests). Falls back to built-in patterns per project type.
+- `security-review` — Complete a security review of pending changes on the current branch.
+- `plugin-authoring` — Make a mod: a change to Claude's own interface or behaviour (live pane, panel, status line, toast, slash command, hook).
+- `init` — Initialize a new CLAUDE.md file with codebase documentation.
+- `keybindings-help` — Customize keyboard shortcuts, rebind keys, add chord bindings, or modify `~/.claude/keybindings.json`.
+
+Also available (installed by same script):
+- `fewer-permission-prompts` — Reduce repeated permission prompts with narrow allow rules for safe, read-only commands.
+- `workflow-authoring` — Turn a multi-step task the user repeats into a reusable skill with a clear SKILL.md.

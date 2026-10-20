@@ -4,10 +4,10 @@
   },
   "permissions": {
     "allow": [
-      "Bash(cat CLAUDE.md)",
-      "Bash(python .claude/initialize_session.py)",
       "Bash(python3 .claude/initialize_session.py)",
-      "Bash(python3 .claude/memory/save_checkpoint.py *)"
+      "Bash(python .claude/initialize_session.py)",
+      "Bash(python3 .claude/memory/save_checkpoint.py *)",
+      "Bash(python .claude/memory/save_checkpoint.py *)"
     ]
   },
   "hooks": {
@@ -16,8 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/initialize_session.py\"",
-            "timeout": 10
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/initialize_session.py\" || python \"${CLAUDE_PROJECT_DIR:-.}/.claude/initialize_session.py\"",
+            "timeout": 30
           }
         ]
       }
@@ -27,8 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/memory/save_checkpoint.py\" --auto",
-            "timeout": 10
+            "command": "python3 \"${CLAUDE_PROJECT_DIR:-.}/.claude/memory/save_checkpoint.py\" --auto || python \"${CLAUDE_PROJECT_DIR:-.}/.claude/memory/save_checkpoint.py\" --auto",
+            "timeout": 30
           }
         ]
       }

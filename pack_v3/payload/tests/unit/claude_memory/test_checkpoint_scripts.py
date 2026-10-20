@@ -16,11 +16,26 @@ CLAUDE_DIR = REPO_ROOT / ".claude"
 
 
 def run(cwd: Path, *args: str, stdin: str | None = None) -> subprocess.CompletedProcess:
-    return subprocess.run(list(args), cwd=cwd, capture_output=True, text=True, input=stdin, timeout=30)
+    return subprocess.run(
+        list(args),
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        input=stdin,
+        timeout=30,
+    )
 
 
 def git(cwd: Path, *args: str) -> str:
-    return run(cwd, "git", "-c", "user.email=t@example.com", "-c", "user.name=t", *args).stdout.strip()
+    return run(
+        cwd,
+        "git",
+        "-c",
+        "user.email=t@example.com",
+        "-c",
+        "user.name=t",
+        *args,
+    ).stdout.strip()
 
 
 @pytest.fixture()
@@ -36,7 +51,12 @@ def repo(tmp_path: Path) -> Path:
 
 
 def save(repo: Path, **fields) -> subprocess.CompletedProcess:
-    payload = {"task_description": "Did a thing", "accomplishments": ["a"], "next_steps": ["b"], **fields}
+    payload = {
+        "task_description": "Did a thing",
+        "accomplishments": ["a"],
+        "next_steps": ["b"],
+        **fields,
+    }
     (repo / "cp.json").write_text(json.dumps(payload), encoding="utf-8")
     return run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--file", "cp.json")
 
@@ -103,7 +123,8 @@ def test_auto_checkpoint_is_skipped_when_nothing_changed(repo: Path) -> None:
     lines_before = (repo / ".claude/memory/session_checkpoints.jsonl").read_text().splitlines()
     result = run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--auto", stdin="{}")
     assert "nothing saved" in result.stdout
-    assert (repo / ".claude/memory/session_checkpoints.jsonl").read_text().splitlines() == lines_before
+    journal = repo / ".claude/memory/session_checkpoints.jsonl"
+    assert journal.read_text().splitlines() == lines_before
 
 
 def test_second_auto_keeps_pointing_at_the_original_manual_checkpoint(repo: Path) -> None:
@@ -135,5 +156,7 @@ def test_manual_checkpoint_rejects_bad_fields(repo: Path, bad: dict) -> None:
 
 def test_manual_checkpoint_rejects_non_object_and_missing_file(repo: Path) -> None:
     (repo / "cp.json").write_text("[1]", encoding="utf-8")
-    assert run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--file", "cp.json").returncode == 1
-    assert run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--file", "nope.json").returncode == 1
+    result = run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--file", "cp.json")
+    assert result.returncode == 1
+    result = run(repo, sys.executable, ".claude/memory/save_checkpoint.py", "--file", "nope.json")
+    assert result.returncode == 1

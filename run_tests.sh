@@ -43,19 +43,19 @@ run_step() {
 }
 
 # Step 1: Python version
-run_step "Python version" .venv/bin/python --version
+run_step "Python version" .venv-termux/bin/python --version
 
 # Step 2: Editable install check
-run_step "Package installed" .venv/bin/python -c "import nexus_cove; print(nexus_cove.__file__)"
+run_step "Package installed" .venv-termux/bin/python -c "import nexus_cove; print(nexus_cove.__file__)"
 
 # Step 3: Ruff lint
-run_step "Ruff lint" .venv/bin/python -m ruff check .
+run_step "Ruff lint" .venv-termux/bin/python -m ruff check .
 
 # Step 4: Compile check
-run_step "Compileall" .venv/bin/python -m compileall -q src tests
+run_step "Compileall" .venv-termux/bin/python -m compileall -q src tests
 
 # Step 5: Test suite
-run_step "Pytest suite" .venv/bin/python -m pytest tests -q
+run_step "Pytest suite" .venv-termux/bin/python -m pytest tests -q
 
 # ---- Summary ----
 echo "${BOLD}${CYAN}=== SUMMARY ===${RESET}"

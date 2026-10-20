@@ -9,7 +9,7 @@ prints a notice and exits 0.
 """
 import json
 import subprocess
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,7 +43,7 @@ def load_checkpoint():
 def parse_time(ts):
     try:
         then = datetime.fromisoformat(ts)
-        return then if then.tzinfo else then.replace(tzinfo=timezone.utc)
+        return then if then.tzinfo else then.replace(tzinfo=UTC)
     except (TypeError, ValueError):
         return None
 
@@ -52,7 +52,7 @@ def age_text(ts):
     then = parse_time(ts)
     if then is None:
         return "unknown age"
-    hours = (datetime.now(timezone.utc) - then).total_seconds() / 3600
+    hours = (datetime.now(UTC) - then).total_seconds() / 3600
     return f"{hours:.1f} h ago" if hours < 48 else f"{hours / 24:.1f} days ago"
 
 
@@ -91,16 +91,27 @@ def compare_with_repo(cp):
     if saved:
         count = git("rev-list", "--count", f"{saved}..HEAD")
         if count is None:
-            return (f"DIVERGED - checkpoint commit {saved[:7]} is not an ancestor of HEAD "
-                    f"({current[:7]}); branch switched or history rewritten")
-        return f"CHANGED - {count} new commit(s) since the checkpoint ({saved[:7]} -> {current[:7]})"
+            return (
+                f"DIVERGED - checkpoint commit {saved[:7]} is not an ancestor of HEAD "
+                f"({current[:7]}); branch switched or history rewritten"
+            )
+        return (
+            f"CHANGED - {count} new commit(s) since the checkpoint "
+            f"({saved[:7]} -> {current[:7]})"
+        )
     # Older checkpoint without git facts: compare commit time with checkpoint time.
     committed = parse_time(git("log", "-1", "--format=%cI") or "")
     written = parse_time(cp.get("timestamp", ""))
     if committed and written:
         if committed > written:
-            return "UNKNOWN - checkpoint has no git info; the latest commit is newer than it, so the repo has changed"
-        return "UNKNOWN - checkpoint has no git info; the latest commit is older than it, so the repo likely matches"
+            return (
+                "UNKNOWN - checkpoint has no git info; "
+                "the latest commit is newer than it, so the repo has changed"
+            )
+        return (
+            "UNKNOWN - checkpoint has no git info; "
+            "the latest commit is older than it, so the repo likely matches"
+        )
     return "UNKNOWN - checkpoint has no git info"
 
 
@@ -114,8 +125,11 @@ def main():
         origin = cp.get("carried_from") if cp.get("source") == "auto" else None
         if not (isinstance(origin, dict) and origin.get("checkpoint_id")):
             origin = None
-        print(f"Last checkpoint: {cp.get('checkpoint_id', 'unknown')} "
-              f"[{cp.get('source', 'manual')}] {cp.get('timestamp', 'unknown')} ({age_text(cp.get('timestamp'))})")
+        print(
+            f"Last checkpoint: {cp.get('checkpoint_id', 'unknown')} "
+            f"[{cp.get('source', 'manual')}] {cp.get('timestamp', 'unknown')} "
+            f"({age_text(cp.get('timestamp'))})"
+        )
         if origin:
             print(f"Task below comes from {origin['checkpoint_id']} checkpoint "
                   f"({age_text(origin.get('timestamp'))})")
@@ -129,8 +143,8 @@ def main():
     branch = git("rev-parse", "--abbrev-ref", "HEAD")
     if branch:
         # Same rule as save_checkpoint.py: the checkpoint files are bookkeeping, not work.
-        dirty = [l for l in (git("status", "--porcelain") or "").splitlines()
-                 if not l[3:].startswith(".claude/memory/")]
+        dirty = [line for line in (git("status", "--porcelain") or "").splitlines()
+                 if not line[3:].startswith(".claude/memory/")]
         print(f"Git now: branch {branch}, {len(dirty)} uncommitted change(s)")
     print("=" * 60)
 

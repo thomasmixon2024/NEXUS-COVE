@@ -9,13 +9,12 @@ for code that imports SessionCheckpoint.
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 
 class SessionCheckpoint:
-    def __init__(self, session_dir: Optional[Path] = None):
+    def __init__(self, session_dir: Path | None = None):
         if session_dir is None:
             # This file lives in .claude/memory, so never depend on the caller's cwd.
             session_dir = Path(__file__).resolve().parent
@@ -25,11 +24,11 @@ class SessionCheckpoint:
         self.checkpoint_file = self.session_dir / "session_checkpoints.jsonl"
         self.current_checkpoint = self.session_dir / "current_checkpoint.json"
 
-    def create_checkpoint(self, task_description: str, accomplishments: List[str],
-                          next_steps: Optional[List[str]] = None,
-                          metadata: Optional[Dict] = None) -> str:
+    def create_checkpoint(self, task_description: str, accomplishments: list[str],
+                          next_steps: list[str] | None = None,
+                          metadata: dict | None = None) -> str:
         """Create a new checkpoint entry and return its id."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         checkpoint = {
             "timestamp": now.isoformat(),
             "session_id": os.getenv("CLAUDE_SESSION_ID", "unknown"),
@@ -46,13 +45,13 @@ class SessionCheckpoint:
             json.dump(checkpoint, f, indent=2)
         return checkpoint["checkpoint_id"]
 
-    def get_latest_checkpoint(self) -> Optional[Dict]:
+    def get_latest_checkpoint(self) -> dict | None:
         try:
             return json.loads(self.current_checkpoint.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
 
-    def get_checkpoint_history(self, limit: int = 10) -> List[Dict]:
+    def get_checkpoint_history(self, limit: int = 10) -> list[dict]:
         """Most recent first. Lines that are not valid JSON are skipped."""
         try:
             lines = self.checkpoint_file.read_text(encoding="utf-8").splitlines()
@@ -88,7 +87,10 @@ def main() -> None:
     elif command == "history":
         print("Recent checkpoint history:")
         for i, cp in enumerate(checkpoint.get_checkpoint_history(5), 1):
-            print(f"{i}. [{cp.get('checkpoint_id')}] {cp.get('task_description')} ({cp.get('timestamp')})")
+            print(
+            f"{i}. [{cp.get('checkpoint_id')}] "
+            f"{cp.get('task_description')} ({cp.get('timestamp')})"
+        )
     else:
         print("Usage: checkpoint_system.py [status|history]")
 

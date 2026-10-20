@@ -42,18 +42,33 @@ The server binds to `127.0.0.1` by default and has **no authentication or encryp
 - A production execution backend or deployment configuration.
 - An open-source license. All rights are reserved.
 
-Tests are the authoritative evidence for the status above. Run them to confirm it on your machine.
+Tests are the authoritative evidence for the status above. Run them to confirm it on your machine. **126 tests pass** across unit, integration, and e2e levels.
 
 ## Prerequisites
 
-- Windows 10 or 11 with PowerShell for the launcher scripts. The Python modules can also run on POSIX; the commands below use PowerShell unless stated otherwise.
-- Python 3.11, 3.12, or 3.13. Check the interpreter with `python --version` before creating the environment.
-- Git if you are cloning the repository.
-- A browser to open `web/index.html`.
-- Local TCP port `8765` available for the WebSocket server. The server binds to `127.0.0.1` by default.
+- **Python 3.11, 3.12, or 3.13** — Check with `python --version` or `python3 --version`
+- **Git** — For cloning the repository
+- **A browser** — To open `web/index.html`
+- **Local TCP port 8765** — For the WebSocket server (binds to `127.0.0.1`)
 - **Optional for model-generated chat replies:** [Ollama](https://ollama.com/download) installed and running locally. The standard agent launcher uses `qwen2.5:0.5b`; this model must be downloaded before agents can use it.
 
 NEXUS COVE does not require Ollama for the server, browser chat, or deterministic task round-trip checks. Without `--model`, workers use fixed development replies. Do not expose the unauthenticated server beyond loopback.
+
+### Platform-Specific Notes
+
+| Platform | Notes |
+|----------|-------|
+| **Windows 10/11** | Use PowerShell for launcher scripts (see below) |
+| **Ubuntu/Termux/Linux** | Use bash commands; all Python modules run natively on POSIX |
+| **macOS** | Same as Ubuntu; use bash commands |
+
+### Termux (Android) Specific
+
+```bash
+pkg install python git
+# Optional for Ollama
+pkg install ollama
+```
 
 ## Get the source
 
@@ -66,7 +81,9 @@ If you received a project archive instead, extract it and open PowerShell in the
 
 ## Install
 
-Run these commands from the repository root. On Windows, the explicit virtual-environment interpreter avoids needing to activate the environment or change PowerShell execution policy:
+Run these commands from the repository root.
+
+### Windows (PowerShell)
 
 ```powershell
 python --version
@@ -84,7 +101,23 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\.venv\Scripts\Activate.ps1
 ```
 
-On POSIX, use `source .venv/bin/activate` and `.venv/bin/python` in place of the PowerShell activation script and `\.venv\Scripts\python.exe`. The PowerShell launchers and desktop-shortcut scripts are Windows-only.
+### Ubuntu / Termux / Linux / macOS (bash)
+
+```bash
+python3 --version
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+```
+
+To activate the environment for subsequent commands:
+
+```bash
+source .venv/bin/activate
+```
+
+The PowerShell launchers and desktop-shortcut scripts are Windows-only. On POSIX, run components manually as described below.
 
 ## Start the full local test bed
 
@@ -123,6 +156,30 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launchers\Update-T
 The shortcut uses the project icon from `assets/NEXUS-COVE-LOGO.ico`. Before opening the browser, the launcher checks that Ollama and `qwen2.5:0.5b` are available and waits for the manager and both active workers to register.
 
 Worker and server output is written under `logs/`: `server.out.log`, `manager.out.log`, `Aegis-Worker.out.log`, `Vigil-Worker.out.log`, and matching `.err.log` files. `launcher.log` records startup checks and failures.
+
+### POSIX / Termux (manual component startup)
+
+The PowerShell launchers are Windows-only. On POSIX, start each component in a separate terminal:
+
+```bash
+# Terminal 1: WebSocket server
+source .venv/bin/activate
+python -m nexus_cove.transport.websocket.server
+
+# Terminal 2: Manager (with SQLite storage)
+source .venv/bin/activate
+python -m nexus_cove.orchestration.manager --db data/cove.db
+
+# Terminal 3: Aegis-Worker
+source .venv/bin/activate
+python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b --start-conversation Vigil-Worker
+
+# Terminal 4: Vigil-Worker
+source .venv/bin/activate
+python -m nexus_cove.agents.worker --name Vigil-Worker --capability analysis --test-backend --model qwen2.5:0.5b
+```
+
+Then open `web/index.html` in a browser. Omit `--model qwen2.5:0.5b` when Ollama is not installed; workers then use fixed development replies.
 
 ## Data and logs
 
@@ -179,30 +236,58 @@ Each identity can be registered only once. Do not start a second server, manager
 
 Run the test suite from the repository root:
 
+### Windows (PowerShell)
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests -q
 ```
 
+### POSIX / Termux (bash)
+```bash
+source .venv/bin/activate
+python -m pytest tests -q
+```
+
 To verify the manager-to-worker task route, use a server and two workers, but **do not** start the standalone manager. The check script connects as `Nexus-Manager`, submits one deterministic task, waits for a worker, and stores the result in a temporary SQLite database:
 
+### Windows (PowerShell)
 ```powershell
 # Start the server and both workers in separate windows first.
 .\.venv\Scripts\python.exe scripts\diagnostics\check_roundtrip.py
+```
+
+### POSIX / Termux (bash)
+```bash
+source .venv/bin/activate
+python scripts/diagnostics/check_roundtrip.py
 ```
 
 The full test-bed launcher starts its own manager, so do not run `check_roundtrip.py` in that same session.
 
 For development checks:
 
+### Windows (PowerShell)
 ```powershell
 .\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m compileall -q src tests
 ```
 
-Or run the project's PowerShell test wrapper:
+### POSIX / Termux (bash)
+```bash
+source .venv/bin/activate
+python -m ruff check .
+python -m compileall -q src tests
+```
+
+Or run the project's PowerShell test wrapper (Windows only):
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\maintenance\Run-PythonTests.ps1
+```
+
+For POSIX, use the `run_tests.sh` script:
+
+```bash
+bash run_tests.sh
 ```
 
 ### Test levels
@@ -217,19 +302,138 @@ Tests are organized by level:
 
 Workers started with `--model <name>` answer direct messages with a local model served by [Ollama](https://ollama.com). The model must be running on `127.0.0.1:11434`. Replies are generated only on your machine.
 
+### Windows (PowerShell)
 ```powershell
 ollama pull qwen2.5:0.5b
 python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b
 ```
 
-To stop every agent from replying, create the file `data\PAUSE`. Delete it to resume:
+### POSIX / Termux (bash)
+```bash
+source .venv/bin/activate
+ollama pull qwen2.5:0.5b
+python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b
+```
 
+To stop every agent from replying, create the file `data/PAUSE` (POSIX) or `data\PAUSE` (Windows). Delete it to resume:
+
+### Windows (PowerShell)
 ```powershell
 New-Item -ItemType File -Force data\PAUSE      # pause
 Remove-Item data\PAUSE                     # resume
 ```
 
+### POSIX / Termux (bash)
+```bash
+touch data/PAUSE        # pause
+rm data/PAUSE           # resume
+```
+
 Agent-to-agent direct messages are spaced at least 20 seconds apart globally. The dialogue guard also limits agent replies to 10 per partner every 5 minutes; messages from a human reset that per-partner reply limit.
+
+## Session Continuity (Claude Code)
+
+NEXUS COVE includes a session continuity system that preserves context across Claude Code sessions:
+
+### SessionStart Hook (automatic)
+Runs `python3 .claude/initialize_session.py` at the start of every Claude Code session. Output includes:
+- Last checkpoint ID, timestamp, and source (auto/manual)
+- Task description, accomplishments, and next steps
+- Files touched in the previous session
+- Git state comparison: `MATCHES`, `CHANGED`, `DIVERGED`, or `UNKNOWN`
+
+### SessionEnd Hook (automatic)
+Runs `.claude/memory/save_checkpoint.py --auto` when a session ends. Captures:
+- Current git HEAD, branch, last commit, and changed files (excludes `.claude/memory/`)
+- Carries forward the last manual task/next steps
+- Skips if identical to previous auto-checkpoint
+
+### Manual Checkpoints
+```bash
+# Save a manual checkpoint
+cat > /tmp/my_checkpoint.json << 'EOF'
+{"task_description": "implemented feature X", "accomplishments": ["did A", "did B"], "next_steps": ["test C"]}
+EOF
+python3 .claude/memory/save_checkpoint.py --file /tmp/my_checkpoint.json
+
+# View checkpoint history
+python3 -c "
+import json
+from pathlib import Path
+for line in Path('.claude/memory/session_checkpoints.jsonl').read_text().splitlines():
+    d = json.loads(line)
+    print(f\"{d['checkpoint_id']} [{d['source']}] {d['task_description']}\")
+"
+```
+
+Checkpoint files are stored in `.claude/memory/`:
+- `current_checkpoint.json` — latest checkpoint
+- `session_checkpoints.jsonl` — append-only journal
+
+## Skills & Plugins System
+
+NEXUS COVE includes a skills/plugins installer system at `NexusCove_Skills_Plugins_Installers_v3/`:
+
+### Installer Scripts (run in order)
+```bash
+# 1. Required skills
+./NexusCove_Skills_Plugins_Installers_v3/02_setup_required_skills.sh
+
+# 2. Required plugin (superpowers)
+./NexusCove_Skills_Plugins_Installers_v3/03_setup_required_plugins.sh
+
+# 3. Optional skills (11 skills including project-local)
+./NexusCove_Skills_Plugins_Installers_v3/04_setup_optional_skills.sh
+
+# 4. Optional plugins (none defined by default)
+./NexusCove_Skills_Plugins_Installers_v3/05_setup_optional_plugins.sh
+```
+
+### Installed Skills (Project-Local)
+These skills are in `.claude/skills/` and managed by the installer:
+
+| Skill | Description |
+|-------|-------------|
+| `project-context` | Load Nexus Cove project context: architecture, ADRs, commands, key files |
+| `dataviz` | Design-system-agnostic data visualization (palette validator, mark specs) |
+| `claude-api` | Claude API/SDK reference: models, pricing, streaming, tools, MCP, caching |
+| `run` | Launch and drive the project app to verify changes |
+| `security-review` | Security review checklist for pending changes |
+| `plugin-authoring` | Create Claude Code mods: panes, status lines, toasts, slash commands, hooks |
+| `init` | Initialize a new CLAUDE.md with codebase documentation |
+| `keybindings-help` | Customize keyboard shortcuts in `~/.claude/keybindings.json` |
+| `fewer-permission-prompts` | Reduce repeated permission prompts with narrow allow rules |
+| `workflow-authoring` | Turn repeated multi-step tasks into reusable skills |
+| `code-review` | Review code changes for correctness, safety, definition-of-done |
+| `simplify` | Simplify recently changed code for reuse, clarity, efficiency |
+
+### Superpowers Plugin
+The `superpowers@claude-plugins-official` plugin provides 15 process skills:
+`brainstorming`, `systematic-debugging`, `test-driven-development`, `writing-plans`, `executing-plans`, `verification-before-completion`, `subagent-driven-development`, `dispatching-parallel-agents`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `using-git-worktrees`, `using-superpowers`, `diagnosing-superpowers`, `writing-skills`
+
+### Using Skills in Claude Code
+```bash
+# In Claude Code, invoke a skill:
+/project-context
+/dataviz
+/claude-api
+# etc.
+```
+
+## Memory & Checkpoint System (Agent-Level)
+
+Each agent maintains its own memory in `data/memory/<agent>.jsonl`:
+- One JSONL line per message heard/replied
+- Recent entries included in prompts for context
+- Session checkpoints every 100 messages + on demand
+
+### Agent Memory API
+```python
+from nexus_cove.agents.memory import AgentMemory
+memory = AgentMemory(data_dir() / "memory" / "Aegis-Worker.jsonl")
+memory.create_session_checkpoint()  # Manual checkpoint
+memory.startup_flush_with_highlight_retention()  # Restore highlights
+```
 
 ## Agent personalities and conversation starter
 

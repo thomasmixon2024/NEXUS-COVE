@@ -26,7 +26,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 PAYLOAD = HERE / "payload"
-BEGIN = "<!-- BEGIN session-continuity (managed by install.py; edit the file in the patch, not here) -->"
+BEGIN = (
+    "<!-- BEGIN session-continuity "
+    "(managed by install.py; edit the file in the patch, not here) -->"
+)
 END = "<!-- END session-continuity -->"
 # Files copied as they are (path relative to payload/ and to the repo).
 FILES = [
@@ -57,7 +60,9 @@ class Installer:
     def __init__(self, repo, apply):
         self.repo = repo
         self.apply = apply
-        self.backup_dir = repo / ".claude" / "backups" / f"memory-network-{datetime.now():%Y%m%d_%H%M%S}"
+        self.backup_dir = repo / ".claude" / "backups" / (
+            f"memory-network-{datetime.now():%Y%m%d_%H%M%S}"
+        )
         self.changes = 0
 
     def say(self, tag, path, note=""):
@@ -97,7 +102,11 @@ class Installer:
 
     def claude_md(self):
         rel = "CLAUDE.md"
-        block = f"{BEGIN}\n{(PAYLOAD / 'CLAUDE_BLOCK.md').read_text(encoding='utf-8').strip()}\n{END}\n"
+        block = (
+            f"{BEGIN}\n"
+            f"{(PAYLOAD / 'CLAUDE_BLOCK.md').read_text(encoding='utf-8').strip()}\n"
+            f"{END}\n"
+        )
         target = self.repo / rel
         if not target.exists():
             self.say("new", rel, "(only the session block)")
@@ -113,7 +122,7 @@ class Installer:
             outside = pattern.sub("", old)
         else:
             lines = old.splitlines(keepends=True)
-            first = next((i for i, l in enumerate(lines) if l.strip()), None)
+            first = next((i for i, line in enumerate(lines) if line.strip()), None)
             at = first + 1 if first is not None and lines[first].startswith("# ") else 0
             new = "".join(lines[:at]) + ("\n" if at else "") + block + "\n" + "".join(lines[at:])
         if new == old:
@@ -126,8 +135,12 @@ class Installer:
                 self.write(rel, new, existed=True)
         for number, line in enumerate(outside.splitlines(), 1):
             if SESSION_HEADING.match(line) or "initialize_session" in line:
-                print(f"           NOTE: CLAUDE.md line {number} outside the block also covers sessions: "
-                      f"{line.strip()[:90]!r}. Remove it by hand if it is the old end-of-file section.")
+                print(
+                    "           NOTE: CLAUDE.md line "
+                    f"{number} outside the block also covers sessions: "
+                    f"{line.strip()[:90]!r}. "
+                    "Remove it by hand if it is the old end-of-file section."
+                )
 
     def settings(self):
         rel = ".claude/settings.json"
@@ -168,7 +181,11 @@ class Installer:
         if json.dumps(data, sort_keys=True) == before:
             self.say("same", rel)
             return
-        self.say("merge", rel, "(adds/updates the two hooks and two allow rules; other settings kept)")
+        self.say(
+            "merge",
+            rel,
+            "(adds/updates the two hooks and two allow rules; other settings kept)",
+        )
         self.changes += 1
         if self.apply:
             self.write(rel, json.dumps(data, indent=2) + "\n", existed=existed)
@@ -184,16 +201,27 @@ class Installer:
         if not self.changes:
             print("Already up to date.")
         elif self.apply:
-            print(f"Done: {self.changes} change(s). Replaced files were backed up under {self.backup_dir}"
-                  if self.backup_dir.exists() else f"Done: {self.changes} change(s). Nothing needed a backup.")
+            if self.backup_dir.exists():
+                msg = (
+                    f"Done: {self.changes} change(s). "
+                    f"Replaced files were backed up under {self.backup_dir}"
+                )
+            else:
+                msg = f"Done: {self.changes} change(s). Nothing needed a backup."
+            print(msg)
             print("Checking the loader:\n")
-            subprocess.run([sys.executable, str(self.repo / ".claude/initialize_session.py")], cwd=self.repo)
+            subprocess.run(
+                [sys.executable, str(self.repo / ".claude/initialize_session.py")],
+                cwd=self.repo,
+            )
         else:
             print(f"{self.changes} change(s) pending. Run again with --apply to install.")
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     ap.add_argument("--repo", required=True, type=Path, help="path to the NEXUS-COVE repo")
     ap.add_argument("--apply", action="store_true", help="write the changes (default is a dry run)")
     args = ap.parse_args()

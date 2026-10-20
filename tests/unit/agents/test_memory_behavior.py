@@ -40,7 +40,14 @@ def test_lines_that_look_important_are_kept(tmp_path: Path, line: str) -> None:
     assert memory.get_highlights() == [line]
 
 
-@pytest.mark.parametrize("line", ["a prefix and a suffix", "plain chatter", "terrorism is unrelated"])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "a prefix and a suffix",
+        "plain chatter",
+        "terrorism is unrelated",
+    ],
+)
 def test_keywords_inside_other_words_are_not_highlights(tmp_path: Path, line: str) -> None:
     memory = AgentMemory(tmp_path / "m.jsonl")
     memory.append("received", "x", line)
