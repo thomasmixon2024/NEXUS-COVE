@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/NEXUS-COVE-BANNER.jpg" alt="NEXUS-COVE Logo" width="420">
+  <img src="assets/NEXUS-COVE-LOGO.jpg" alt="NEXUS-COVE Logo" width="420">
 
   <h1>NEXUS-COVE</h1>
 
