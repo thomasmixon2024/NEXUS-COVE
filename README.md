@@ -1,54 +1,54 @@
 <div align="center">
+  <img src="assets/NEXUS-COVE-BANNER.jpg" alt="NEXUS-COVE Logo" width="420">
 
-🏕️ NEXUS-COVE
+  <h1>NEXUS-COVE</h1>
 
-A lightweight, async Python framework for running local AI agents.
-Zero cloud. Zero API keys. Absolute edge.
+  <p><strong>A lightweight, async Python framework for running local AI agents.</strong><br>
+  <em>Zero cloud. Zero API keys. Absolute edge.</em></p>
 
-https://img.shields.io/badge/python-3.11%2B-blue.svg
-https://img.shields.io/badge/Backend-Ollama-black.svg
-https://img.shields.io/badge/Android-Termux-green.svg
-https://img.shields.io/badge/License-MIT-yellow.svg
-
+  [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+  [![Ollama](https://img.shields.io/badge/Backend-Ollama-black.svg)](https://ollama.com)
+  [![Termux Ready](https://img.shields.io/badge/Android-Termux-green.svg)](https://termux.dev)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 </div>
 
 ---
 
-🧠 What is this?
+## 🧠 What is this?
 
-NEXUS-COVE is an asynchronous agent framework designed to be absurdly lightweight. It strips out the bloat of modern AI wrappers and gets straight to the point: connecting your agents to local, offline LLMs so they can talk to each other without paying a dime to OpenAI.
+**NEXUS-COVE** is an asynchronous agent framework designed to be absurdly lightweight. It strips out the bloat of modern AI wrappers and gets straight to the point: connecting your agents to local, offline LLMs so they can talk to each other without paying a dime to OpenAI.
 
 Built for the edge. Built for speed. Built to run anywhere Python runs.
 
 ---
 
-🔥 THE TERMUX FLEX 🔥
+## 🔥 THE TERMUX FLEX 🔥
 
 We didn't just build this for 64-core server racks. We built it to run in your pocket.
 
-Benchmark: Tested live on an Android ARM64 device via Termux. 
-Model: qwen2.5:0.5b (Q4_K_M)
-Latency: 1.57 seconds (Warm) ⚡
+> **Benchmark:** Tested live on an **Android ARM64 device via Termux**.
+> **Model:** `qwen2.5:0.5b` (Q4_K_M)
+> **Latency:** **1.57 seconds** (Warm) ⚡
 
 If it runs on Android, it'll run on your toaster.
 
 ---
 
-⚡ Core Features
+## ⚡ Core Features
 
-· True Async: Built from the ground up with asyncio and aiohttp for non-blocking agent chatter.
-· Backend Agnostic: Ships with native support for Ollama.
-· No API Keys: Your data stays on your machine. Period.
-· Modular: Want to add a new LLM backend? Drop it in src/nexus_cove/agents/backends/.
-· Python 3.14 Ready: Constraint tested and verified up to <3.15.
+* **True Async:** Built from the ground up with `asyncio` and `aiohttp` for non-blocking agent chatter.
+* **Backend Agnostic:** Ships with native support for Ollama.
+* **No API Keys:** Your data stays on your machine. Period.
+* **Modular:** Want to add a new LLM backend? Drop it in `src/nexus_cove/agents/backends/`.
+* **Python 3.14 Ready:** Constraint tested and verified up to `<3.15`.
 
 ---
 
-🚀 Quick Start
+## 🚀 Quick Start
 
-1. Prerequisites
+### 1. Prerequisites
 
-You need Ollama installed and running on your host machine.
+You need [Ollama](https://ollama.com/) installed and running on your host machine.
 
 ```bash
 # Start the Ollama daemon
@@ -58,7 +58,7 @@ ollama serve
 ollama pull qwen2.5:0.5b
 ```
 
-2. Install NEXUS-COVE
+### 2. Install NEXUS-COVE
 
 Clone the repo and install it in editable mode:
 
@@ -68,7 +68,7 @@ cd NEXUS-COVE
 pip install -e ".[dev]"
 ```
 
-3. Run the Verification Test
+### 3. Run the Verification Test
 
 Prove it works right out of the box. This script spins up an agent, warms up the model, and measures latency:
 
@@ -76,7 +76,7 @@ Prove it works right out of the box. This script spins up an agent, warms up the
 python tests/termux_ollama_test.py
 ```
 
-Expected Output:
+**Expected Output:**
 
 ```text
 ✅ Ollama reachable
@@ -85,14 +85,15 @@ Warming up model...
    Reply: "Hello! You're testing Termux..."
 ```
 
-4. Mobile / Termux Setup
+### 4. Mobile / Termux Setup
 
 Want to run it on Android? We wrote the whole playbook for it.
-👉 Read the Termux + Ollama Setup Guide
+
+👉 [Read the Termux + Ollama Setup Guide](docs/operations/)
 
 ---
 
-📂 Project Structure
+## 📂 Project Structure
 
 ```text
 NEXUS-COVE/
@@ -105,13 +106,13 @@ NEXUS-COVE/
 
 ---
 
-🤝 Contributing
+## 🤝 Contributing
 
 Got a new backend? Found a bug? PRs are wide open. Just make sure your tests pass and your code is formatted.
 
-📝 License
+## 📝 License
 
-Distributed under the MIT License. See LICENSE for more information.
+Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
 
 ---
 
