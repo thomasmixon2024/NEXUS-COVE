@@ -100,3 +100,4 @@ nc.zip
 # Local Backups
 .patch-backups/
 *.tar.gz
+.pids/
