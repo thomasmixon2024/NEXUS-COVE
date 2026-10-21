@@ -76,13 +76,27 @@ python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qw
 ```
 
 ### Browser GUI
+
+**Recommended** — use the testbed launcher which starts the static server and opens the dashboard:
 ```bash
-# Open in browser (any OS)
+./cove-testbed.sh    # starts stack + opens http://127.0.0.1:8080
+```
+
+**Manual** — serve the web directory and open the URL:
+```bash
+cd web && python -m http.server 8080
+# Then open http://127.0.0.1:8080 in your browser
+```
+
+**Legacy** — open `file://` directly (still works):
+```bash
 # Windows:
 Start-Process .\web\index.html
 # Linux/macOS/Termux:
 xdg-open web/index.html  # or open, or just double-click
 ```
+
+Note: The WebSocket origin check now allows both `null` (file://) and loopback HTTP origins (`http://127.0.0.1:8080`), so both methods work.
 
 ## Data Locations
 
@@ -137,3 +151,4 @@ python -m compileall -q src tests
 - **Ollama required for model chat** — but not for deterministic task execution
 - **Single-manager architecture** — no HA or clustering
 - **Chat log grows unbounded** — add rotation for long-running use (see ADR-0004)
+- **Test backend vs model backend** — Workers launched with `--test-backend` only will acknowledge messages with canned "X heard you" replies but won't converse. For conversational replies, also pass `--model qwen2.5:0.5b` (or another Ollama model). The `cove-testbed.sh` script includes both flags.

@@ -46,6 +46,12 @@ If it runs on Android, it'll run on your toaster.
 
 ## 🚀 Quick Start (The 10-Second Setup)
 
+**Fastest launch:**
+```bash
+./cove-testbed.sh    # starts the stack + opens the dashboard
+./cove-kill.sh       # stops everything
+```
+
 **Don't worry, you don't need to be a DevOps wizard to try this.** We built a one-click script that does *everything* for you (starts Ollama, pulls the model, installs dependencies, and runs the test).
 
 🔗 **Repository:** [github.com/thomasmixon2024/NEXUS-COVE](https://github.com/thomasmixon2024/NEXUS-COVE)
@@ -163,20 +169,21 @@ Re-running `./run_demo.sh` is safe:
 - Skips re-pulling already-present Ollama model
 - Does not restart a healthy Ollama daemon
 
-### 🏗️ Architecture: Three Daemons
+### 🏗️ Architecture: Three Daemons + Browser UI
 
-NEXUS-COVE runs as three cooperating processes:
+NEXUS-COVE runs as three cooperating daemons with a browser-based dashboard as the primary interface:
 
 - `cove-server` — WebSocket transport hub
 - `cove-manager` — orchestration and task routing
 - `cove-worker` — agents that process tasks and reply
+- **Browser Dashboard** (`web/index.html`) — mobile-friendly chat UI at `http://127.0.0.1:8080`
 
 `run_demo.sh` is a **smoke test** that verifies prerequisites (Python,
 Ollama, model, websockets). It is not the application interface — see
 [Running the Application](#-running-the-application).
 
-There is no built-in web dashboard. The daemons log to stdout; run each
-in its own terminal session. On Termux, use swipe-left → NEW SESSION.
+The browser dashboard is the primary interface. The four-session terminal
+workflow (below) still works for headless/automation/debugging.
 
 ### ❌ Exit Codes
 
@@ -244,6 +251,8 @@ python tests/termux_ollama_test.py
 
 ## 🚀 Running the Application
 
+**Quick launch:** `./cove-testbed.sh` handles all of the below automatically. Manual steps are for debugging.
+
 `./run_demo.sh` verifies your environment and exits. To actually run
 NEXUS-COVE, start three daemons across concurrent Termux sessions
 (swipe left → NEW SESSION).
@@ -290,14 +299,20 @@ Bob:
 
 That's the topology verified end-to-end.
 
-### Real AI replies
+### Real AI vs Test Backend
 
-Replace `--test-backend` with `--model qwen2.5:0.5b`. Alice's replies
-then come from Ollama instead of the canned backend. Requires the model
-(`run_demo.sh` pulls it).
+Workers need **both** a task execution backend AND a conversational model:
 
-> ⚠️ Without `--test-backend` or `--model`, the worker exits with
-> `No production execution backend is configured.`
+| Flag | Purpose |
+|------|---------|
+| `--test-backend` | Task execution backend (DeterministicTestBackend) — **required** |
+| `--model qwen2.5:0.5b` | Conversational replies via Ollama — **required for dialogue** |
+
+- **Only `--test-backend`**: Workers acknowledge messages with canned "X heard you" replies
+- **`--test-backend --model qwen2.5:0.5b`**: Workers converse using Ollama (real AI replies)
+- **Neither flag**: Worker exits with "No production execution backend is configured"
+
+The `cove-testbed.sh` script launches workers with both flags for conversational agents.
 
 ---
 ## 📱 Mobile / Termux Setup

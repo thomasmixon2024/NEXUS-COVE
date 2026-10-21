@@ -228,22 +228,48 @@ chmod +x ./run_demo.sh
 ./run_demo.sh
 ```
 
+### Agents respond with "X heard you" but won't converse
+
+**Symptom:** Agents are connected and acknowledge messages (showing "Aegis-Worker heard you, T." etc.) but don't engage in real conversation.
+
+**Cause:** Workers are running with `--test-backend` only, without `--model qwen2.5:0.5b`. The test backend only provides canned acknowledgment replies.
+
+**Fix:** Launch workers with both flags:
+```bash
+python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend --model qwen2.5:0.5b --uri ws://127.0.0.1:8765
+```
+Or simply use `./cove-testbed.sh` which configures this automatically.
+
 ---
 
-## 🏗️ Architecture Note: TUI-First Design
+## 🏗️ Architecture Note: Browser-First Design
 
-NEXUS-COVE uses a **TUI-first architecture**:
+NEXUS-COVE uses a **browser-first architecture**:
 
-- **Primary interface**: This interactive installer (`run_demo.sh`)
-- **Secondary**: Optional web UI (launched separately if needed)
+- **Primary interface**: Browser dashboard (`web/index.html` at `http://127.0.0.1:8080`)
+- **Secondary**: Interactive installer (`run_demo.sh`) for setup/verification
+- **Optional**: Four-session terminal workflow for headless/automation/debugging
 - **No** proot/Ubuntu containers required
-- **No** heavy dashboard dependencies
+- **No** heavy dashboard dependencies (single-file HTML + Tailwind CDN)
 
-The TUI is your control surface for:
-- Installation & setup
-- Service health monitoring
-- Log viewing
-- Error recovery
+The browser dashboard provides:
+- Real-time chat with agents
+- Agent pause/resume controls
+- Mobile-friendly off-canvas sidebar
+- Chat log save/download
+
+---
+
+## 🌐 Launching the Dashboard
+
+After `run_demo.sh` completes (or manually with the model installed), launch the full stack with the browser UI:
+
+```bash
+./cove-testbed.sh    # starts server + manager + 3 workers + opens browser
+./cove-kill.sh       # stops everything
+```
+
+This starts the WebSocket server, manager, 3 conversational workers (with `--model qwen2.5:0.5b`), and a static file server on port 8080, then opens the dashboard automatically.
 
 ---
 

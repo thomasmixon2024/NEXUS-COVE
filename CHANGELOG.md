@@ -10,6 +10,19 @@
 
 ## Unreleased
 
+### Changed
+- Primary interface is now the browser dashboard (web/index.html), not the four-session terminal workflow. Mobile-friendly layout with off-canvas sidebar.
+
+### Added
+- cove-kill.sh: stop all cove processes and free ports
+- cove-testbed.sh: one-command launch + browser open
+
+### Fixed
+- Loopback HTTP origins now permitted in WS handshake (browser UI over http://127.0.0.1:8080 previously rejected 403)
+
+### Known issues
+- Agents launched with --test-backend acknowledge messages but do not converse. Use --model qwen2.5:0.5b for conversational replies.
+
 - Refactor: shared streaming JSONL helpers (`utils/jsonl.py`); memory and chatlog use bounded-tail reads.
 - Refactor: Worker message loop split into `_dispatch` / `_on_*` handlers (lower cyclomatic complexity on `run`).
 - Refactor: Manager DM handling extracted; server action routing uses a dispatch table.
