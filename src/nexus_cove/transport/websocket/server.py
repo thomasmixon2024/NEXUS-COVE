@@ -23,6 +23,7 @@ FEED_HISTORY_SIZE = 200
 MANAGER_ID = "Nexus-Manager"
 # None: non-browser clients (no Origin header). "null": file:// pages.
 ALLOWED_ORIGINS: tuple[str | None, ...] = (None, "null")
+ALLOWED_ORIGINS = ALLOWED_ORIGINS + ("http://127.0.0.1:8080", "http://localhost:8080", "http://127.0.0.1", "http://localhost")
 
 
 @dataclass(slots=True)
