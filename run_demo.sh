@@ -121,7 +121,7 @@ prompt_yes_no() {
 
     if [[ "$UI_TOOL" == "whiptail" ]]; then
         if [[ "$default" == "y" ]]; then
-            whiptail --yesno "$question" 10 60 --defaultyes 3>&1 1>&2 2>&3
+            whiptail --yesno "$question" 10 60 3>&1 1>&2 2>&3
         else
             whiptail --yesno "$question" 10 60 3>&1 1>&2 2>&3
         fi
