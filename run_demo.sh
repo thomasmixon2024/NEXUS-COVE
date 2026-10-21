@@ -82,8 +82,11 @@ detect_ui_tool() {
 }
 
 UI_TOOL=$(detect_ui_tool)
+flush_stdin() { while IFS= read -r -t 0.01 -n 256 -s 2>/dev/null; do :; done; }
+
 
 prompt_menu() {
+    flush_stdin
     local title="$1"
     shift
     local options=("$@")
@@ -115,6 +118,7 @@ prompt_menu() {
 }
 
 prompt_yes_no() {
+    flush_stdin
     local question="$1"
     local default="${2:-n}"
     local answer

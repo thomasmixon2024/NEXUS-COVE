@@ -57,6 +57,8 @@ git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
 cd NEXUS-COVE
 ./run_demo.sh
 ```
+> **⚠️ Paste one line at a time.** Some commands below open an interactive prompt. Pasting the whole block at once can cause leftover keystrokes to be consumed by the prompt, exiting the installer unexpectedly. Run each line, wait for it to finish, then paste the next. For a paste-safe automated run, use `./run_demo.sh --yes`.
+
 
 **Expected Output:**
 
