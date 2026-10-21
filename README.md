@@ -68,6 +68,8 @@ Warming up model...
    Reply: "Hello! You're testing Termux..."
 ```
 
+📖 **[Full Demo Installation Guide](docs/guides/demo-installation-guide.md)** — comprehensive walkthrough with all flags, error recovery, troubleshooting, and pro tips.
+
 ### 🎮 Interactive Installer (New in v2.0)
 
 The `run_demo.sh` script now features an interactive TUI (Terminal User Interface) with error recovery:
