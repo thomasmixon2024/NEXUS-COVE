@@ -68,6 +68,128 @@ Warming up model...
    Reply: "Hello! You're testing Termux..."
 ```
 
+### 🎮 Interactive Installer (New in v2.0)
+
+The `run_demo.sh` script now features an interactive TUI (Terminal User Interface) with error recovery:
+
+```bash
+# Interactive mode (default on TTY)
+./run_demo.sh
+
+# Automated with safe defaults (retry once, skip optional deps)
+./run_demo.sh --yes
+
+# CI / non-interactive mode (fail fast with log path)
+./run_demo.sh --non-interactive
+
+# Custom model
+./run_demo.sh --model llama3.2
+
+# Custom virtual environment
+./run_demo.sh --venv /path/to/venv
+
+# Skip Python dependencies (if already installed)
+./run_demo.sh --skip-python-deps
+```
+
+**Correct launch (avoid the malformed `cd NEXUS-COVE ./run_demo.sh ...` pattern):**
+```bash
+cd NEXUS-COVE && ./run_demo.sh
+# or
+./run_demo.sh
+```
+
+### 📋 Command-Line Options
+
+| Flag | Description |
+|------|-------------|
+| `-y`, `--yes` | Accept safe defaults, retry once, auto-skip optional deps, never install system packages |
+| `--non-interactive` | Force non-interactive mode (fail fast on errors) |
+| `--verbose` | Verbose output |
+| `--log-dir <path>` | Log directory (default: `./logs/`) |
+| `--skip-python-deps` | Skip Python dependency installation |
+| `--with-dev` | Install dev extras (pytest, ruff, etc.) |
+| `--no-dev` | Explicitly skip dev extras |
+| `--venv <path>` | Virtual environment path (default: `.venv-termux` or `.venv`) |
+| `--model <name>` | Ollama model (default: `qwen2.5:0.5b`) |
+| `-h`, `--help` | Show help |
+
+### 🎯 Interactive Error Recovery
+
+When a step fails on a TTY, you'll see an actionable menu:
+
+```
+❌ Step failed: install_python_deps (exit 50)
+📄 Log: logs/python-deps-20261020-143022.log
+
+Options:
+1. View full error log
+2. Retry step
+3. Install missing build prerequisites
+4. Use prebuilt wheels only (--only-binary=:all:)
+5. Skip optional dependencies and continue degraded
+6. Abort
+```
+
+The script auto-detects failure patterns and suggests targeted fixes:
+- **Rust/cargo/maturin errors** → Suggests `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- **Python.h missing** → Suggests `apt install python3-dev` (or distro equivalent)
+- **gcc/cc/make missing** → Suggests `apt install build-essential` (or distro equivalent)
+- **Network errors** → Suggests retry
+- **pyproject.toml metadata failures** → Suggests wheel-only install
+
+### 📁 Log Locations
+
+All logs are written to `./logs/` (project-relative):
+- `prerequisites-YYYYMMDD-HHMMSS.log`
+- `ollama-YYYYMMDD-HHMMSS.log`
+- `model-pull-YYYYMMDD-HHMMSS.log`
+- `venv-YYYYMMDD-HHMMSS.log`
+- `python-deps-YYYYMMDD-HHMMSS.log`
+- `demo-YYYYMMDD-HHMMSS.log`
+
+### ⚡ Idempotency
+
+Re-running `./run_demo.sh` is safe:
+- Reuses existing virtual environment (`.venv-termux` or `.venv`)
+- Skips re-pulling already-present Ollama model
+- Does not restart a healthy Ollama daemon
+
+### 🏗️ Architecture: TUI-First, Web-UI-Second
+
+NEXUS-COVE adopts a **TUI-first architecture**:
+- The interactive installer/monitor (`run_demo.sh`) is the primary control surface for installation, diagnostics, service status, log viewing, and error recovery
+- A web UI is optional and secondary — once Ollama and the model are running, you may launch a lightweight web chat UI if configured
+- The TUI remains fully functional even if a web UI fails to start
+- No Termux/Ubuntu hybrid or proot-distro container is required
+
+### ❌ Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 10 | Prerequisite failure |
+| 20 | Ollama failure |
+| 30 | Model download failure |
+| 40 | Virtual environment failure |
+| 50 | Dependency installation failure |
+| 60 | Demo runtime failure |
+| 64 | Bad CLI usage (sysexits.h) |
+
+### 🔧 Common Failure Fixes
+
+| Error | Fix |
+|-------|-----|
+| `cargo`, `rustc`, `maturin` not found | Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
+| `Python.h: No such file or directory` | Install Python headers: `apt install python3-dev` |
+| `gcc: command not found` / `make: command not found` | Install build tools: `apt install build-essential` |
+| `pip` metadata / `pyproject.toml` failure | Use `--only-binary=:all:` (option 4 in menu) or retry |
+| Network timeout during install | Check connectivity, then retry (option 2 in menu) |
+| Dev extras (pytest, ruff) fail | Choose "Skip optional dependencies" (option 5) |
+
+### 🛠️ Manual Installation (Alternative)
+
+If you prefer manual setup:
+
 <details>
 <summary><b>🛠️ Prefer to do it manually? Click here to expand.</b></summary>
 
