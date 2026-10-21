@@ -48,6 +48,8 @@ If it runs on Android, it'll run on your toaster.
 
 **Don't worry, you don't need to be a DevOps wizard to try this.** We built a one-click script that does *everything* for you (starts Ollama, pulls the model, installs dependencies, and runs the test).
 
+[![GitHub Repo](https://img.shields.io/badge/GitHub-thomasmixon2024%2FNEXUS--COVE-black?logo=github)](https://github.com/thomasmixon2024/NEXUS-COVE)
+
 ```bash
 git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
 cd NEXUS-COVE
