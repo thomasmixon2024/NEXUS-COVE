@@ -722,7 +722,13 @@ install_python_deps() {
     done
 
     # Install dev extras (optional)
-    if [[ "$NO_DEV" != "true" && "$WITH_DEV" == "true" ]] || [[ "$NO_DEV" != "true" && "$WITH_DEV" != "true" && "$YES_MODE" != "true" ]]; then
+    # On Termux, default to NO: dev deps (coverage, pre-commit) can trigger an
+    # Android OOM-kill of the whole Termux session during source builds.
+    if [[ -n "${TERMUX_VERSION:-}" && "$WITH_DEV" != "true" ]]; then
+        NO_DEV=true
+        echo "${YELLOW}ℹ Termux: skipping optional dev extras (use --with-dev to force)${RESET}"
+    fi
+    if [[ "$NO_DEV" != "true" && "$WITH_DEV" == "true" ]] || [[ "$NO_DEV" != "true" && "$WITH_DEV" != "true" && "$YES_MODE" != "true" && -z "${TERMUX_VERSION:-}" ]]; then
         # In interactive mode without --no-dev, ask
         if [[ "$YES_MODE" != "true" && "$WITH_DEV" != "true" ]]; then
             if prompt_yes_no "Install dev extras (pytest, ruff, etc.)?" "n"; then
@@ -741,6 +747,12 @@ install_python_deps() {
                         break
                     else
                         local exit_code=$?
+                        if [[ -n "${TERMUX_VERSION:-}" ]]; then
+                            echo "${YELLOW}⚠ Wheel-only failed for dev extras on Termux.${RESET}"
+                            echo "  Refusing source build (OOM risk). Skipping dev extras."
+                            skipped_optional=true
+                            break
+                        fi
                         echo "${YELLOW}Wheel-only install failed for dev extras, trying normal...${RESET}"
                         use_wheel_only=false
                         if [[ "$YES_MODE" == "true" ]]; then
