@@ -123,14 +123,14 @@ prompt_yes_no() {
         if [[ "$default" == "y" ]]; then
             whiptail --yesno "$question" 10 60 3>&1 1>&2 2>&3
         else
-            whiptail --yesno "$question" 10 60 3>&1 1>&2 2>&3
+            whiptail --yesno "$question" 10 60 --defaultno 3>&1 1>&2 2>&3
         fi
         return $?
     elif [[ "$UI_TOOL" == "dialog" ]]; then
         if [[ "$default" == "y" ]]; then
             dialog --yesno "$question" 10 60 3>&1 1>&2 2>&3
         else
-            dialog --yesno "$question" 10 60 3>&1 1>&2 2>&3
+            dialog --yesno "$question" 10 60 --defaultno 3>&1 1>&2 2>&3
         fi
         return $?
     else
@@ -244,6 +244,15 @@ handle_error() {
     local log_file="$3"
 
     log_step_end "$log_file" "$exit_code"
+
+    if [[ "$step_name" == *"(dev)"* ]]; then
+        echo >&2
+        echo "${YELLOW}⚠ Optional step failed: $step_name — continuing without it.${RESET}" >&2
+        echo "  Log: $log_file" >&2
+        echo "  Tip: on Termux, run 'pkg install rust' then re-run with --with-dev" >&2
+        echo >&2
+        return 5
+    fi
 
     echo >&2
     echo "${RED}${BOLD}❌ Step failed: $step_name (exit $exit_code)${RESET}" >&2
@@ -676,7 +685,8 @@ install_python_deps() {
                     continue
                 fi
                 local choice
-                choice=$(handle_error "python-deps (core)" "$exit_code" "$log_file")
+                handle_error "python-deps (core)" "$exit_code" "$log_file"
+                choice=$?
                 case "$choice" in
                     2) continue ;;  # retry
                     4) use_wheel_only=true; continue ;;  # wheel-only
@@ -700,7 +710,8 @@ install_python_deps() {
                     return $?
                 fi
                 local choice
-                choice=$(handle_error "python-deps (core)" "$exit_code" "$log_file")
+                handle_error "python-deps (core)" "$exit_code" "$log_file"
+                choice=$?
                 case "$choice" in
                     2) continue ;;
                     4) use_wheel_only=true; continue ;;
@@ -714,7 +725,7 @@ install_python_deps() {
     if [[ "$NO_DEV" != "true" && "$WITH_DEV" == "true" ]] || [[ "$NO_DEV" != "true" && "$WITH_DEV" != "true" && "$YES_MODE" != "true" ]]; then
         # In interactive mode without --no-dev, ask
         if [[ "$YES_MODE" != "true" && "$WITH_DEV" != "true" ]]; then
-            if prompt_yes_no "Install dev extras (pytest, ruff, etc.)?" "y"; then
+            if prompt_yes_no "Install dev extras (pytest, ruff, etc.)?" "n"; then
                 WITH_DEV=true
             else
                 NO_DEV=true
@@ -736,7 +747,8 @@ install_python_deps() {
                             continue
                         fi
                         local choice
-                        choice=$(handle_error "python-deps (dev)" "$exit_code" "$log_file")
+                        handle_error "python-deps (dev)" "$exit_code" "$log_file"
+                        choice=$?
                         case "$choice" in
                             2) continue ;;
                             4) use_wheel_only=true; continue ;;
@@ -760,7 +772,8 @@ install_python_deps() {
                             break
                         fi
                         local choice
-                        choice=$(handle_error "python-deps (dev)" "$exit_code" "$log_file")
+                        handle_error "python-deps (dev)" "$exit_code" "$log_file"
+                        choice=$?
                         case "$choice" in
                             2) continue ;;
                             4) use_wheel_only=true; continue ;;
