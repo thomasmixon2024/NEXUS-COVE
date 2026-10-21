@@ -163,13 +163,20 @@ Re-running `./run_demo.sh` is safe:
 - Skips re-pulling already-present Ollama model
 - Does not restart a healthy Ollama daemon
 
-### 🏗️ Architecture: TUI-First, Web-UI-Second
+### 🏗️ Architecture: Three Daemons
 
-NEXUS-COVE adopts a **TUI-first architecture**:
-- The interactive installer/monitor (`run_demo.sh`) is the primary control surface for installation, diagnostics, service status, log viewing, and error recovery
-- A web UI is optional and secondary — once Ollama and the model are running, you may launch a lightweight web chat UI if configured
-- The TUI remains fully functional even if a web UI fails to start
-- No Termux/Ubuntu hybrid or proot-distro container is required
+NEXUS-COVE runs as three cooperating processes:
+
+- `cove-server` — WebSocket transport hub
+- `cove-manager` — orchestration and task routing
+- `cove-worker` — agents that process tasks and reply
+
+`run_demo.sh` is a **smoke test** that verifies prerequisites (Python,
+Ollama, model, websockets). It is not the application interface — see
+[Running the Application](#-running-the-application).
+
+There is no built-in web dashboard. The daemons log to stdout; run each
+in its own terminal session. On Termux, use swipe-left → NEW SESSION.
 
 ### ❌ Exit Codes
 
@@ -235,6 +242,64 @@ python tests/termux_ollama_test.py
 
 ---
 
+## 🚀 Running the Application
+
+`./run_demo.sh` verifies your environment and exits. To actually run
+NEXUS-COVE, start three daemons across concurrent Termux sessions
+(swipe left → NEW SESSION).
+
+### Terminal 1 — WebSocket server
+
+    cd ~/NEXUS-COVE
+    .venv/bin/cove-server
+
+Default bind: `ws://0.0.0.0:8765`. Leave running.
+
+### Terminal 2 — Manager
+
+    cd ~/NEXUS-COVE
+    .venv/bin/cove-manager --uri ws://127.0.0.1:8765
+
+Owns the task DB and routes messages. Leave running.
+
+### Terminal 3 — Worker "alice" (responder)
+
+    cd ~/NEXUS-COVE
+    .venv/bin/cove-worker --name alice --uri ws://127.0.0.1:8765 --test-backend
+
+`--test-backend` uses canned replies — safe for topology verification.
+
+### Terminal 4 — Worker "bob" (initiator)
+
+    cd ~/NEXUS-COVE
+    .venv/bin/cove-worker --name bob --uri ws://127.0.0.1:8765 --test-backend --personality Vigil-Worker --start-conversation alice --start-interval 10
+
+`--personality` is required for `--start-conversation`. Bundled:
+`Aegis-Worker`, `Elon-Worker`, `Vigil-Worker`.
+
+### Expected output
+
+Alice every 10s:
+
+    [INFO] nexus_cove.worker: Received direct message from bob: Why do so many stories repeat the same shapes?
+    [INFO] nexus_cove.worker: Sent automated response to bob
+
+Bob:
+
+    [INFO] nexus_cove.starter: Sent conversation starter
+
+That's the topology verified end-to-end.
+
+### Real AI replies
+
+Replace `--test-backend` with `--model qwen2.5:0.5b`. Alice's replies
+then come from Ollama instead of the canned backend. Requires the model
+(`run_demo.sh` pulls it).
+
+> ⚠️ Without `--test-backend` or `--model`, the worker exits with
+> `No production execution backend is configured.`
+
+---
 ## 📱 Mobile / Termux Setup
 
 Want to run it on Android? We wrote the whole playbook for it.
