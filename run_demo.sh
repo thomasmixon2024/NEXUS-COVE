@@ -128,7 +128,7 @@ prompt_yes_no() {
         return $?
     elif [[ "$UI_TOOL" == "dialog" ]]; then
         if [[ "$default" == "y" ]]; then
-            dialog --yesno "$question" 10 60 --defaultyes 3>&1 1>&2 2>&3
+            dialog --yesno "$question" 10 60 3>&1 1>&2 2>&3
         else
             dialog --yesno "$question" 10 60 3>&1 1>&2 2>&3
         fi
