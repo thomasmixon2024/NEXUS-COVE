@@ -3,9 +3,7 @@ from pathlib import Path
 import pytest
 
 from nexus_cove.agents.memory import AgentMemory
-from nexus_cove.agents.tools import GeologyAnalyzer, PatternFinder, toolkit_for
-
-HEADER = "material,property,value,unit,source\n"
+from nexus_cove.agents.tools import CodeAnalyzer, PatternFinder, toolkit_for
 
 
 def test_memory_keeps_order_and_survives_reopening(tmp_path: Path) -> None:
@@ -22,36 +20,69 @@ def test_memory_rejects_unknown_direction(tmp_path: Path) -> None:
         AgentMemory(tmp_path / "m.jsonl").append("overheard", "x", "y")
 
 
-def test_geology_is_silent_without_a_reference_file(tmp_path: Path) -> None:
-    assert GeologyAnalyzer(tmp_path / "missing.csv").run("tell me about granite") is None
+def test_code_analyzer_returns_none_without_trigger(tmp_path: Path) -> None:
+    analyzer = CodeAnalyzer()
+    assert analyzer.run("hello there") is None
+    assert analyzer.run("just a normal message") is None
 
 
-def test_geology_is_silent_with_header_only(tmp_path: Path) -> None:
-    csv_path = tmp_path / "geology.csv"
-    csv_path.write_text(HEADER, encoding="utf-8")
-    assert GeologyAnalyzer(csv_path).run("tell me about granite") is None
+def test_code_analyzer_parses_clean_code(tmp_path: Path) -> None:
+    analyzer = CodeAnalyzer()
+    code = """
+def add(a, b):
+    return a + b
 
-
-def test_geology_reports_only_rows_for_materials_named(tmp_path: Path) -> None:
-    csv_path = tmp_path / "geology.csv"
-    csv_path.write_text(
-        HEADER
-        + "granite,compressive strength,170,MPa,Test source\n"
-        + "basalt,density,2900,kg/m3,Other source\n",
-        encoding="utf-8",
-    )
-    result = GeologyAnalyzer(csv_path).run("Is granite strong enough for a tunnel?")
+class Calculator:
+    def multiply(self, x, y):
+        return x * y
+"""
+    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
     assert result is not None
-    assert "granite: compressive strength = 170 MPa (source: Test source)" in result
-    assert "basalt" not in result
-    assert GeologyAnalyzer(csv_path).run("nothing relevant here") is None
+    assert "Code parsed cleanly" in result
+    assert "2 function(s)" in result
+    assert "1 class(es)" in result
+    assert "No unused imports or obvious undefined names detected" in result
 
 
-def test_geology_rejects_a_file_missing_columns(tmp_path: Path) -> None:
-    csv_path = tmp_path / "geology.csv"
-    csv_path.write_text("material,value\ngranite,170\n", encoding="utf-8")
-    with pytest.raises(ValueError):
-        GeologyAnalyzer(csv_path).run("granite")
+def test_code_analyzer_detects_syntax_error(tmp_path: Path) -> None:
+    analyzer = CodeAnalyzer()
+    code = """
+def broken(
+    return 1
+"""
+    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    assert result is not None
+    assert result.startswith("SyntaxError at line")
+    assert "col" in result
+
+
+def test_code_analyzer_detects_unused_import(tmp_path: Path) -> None:
+    analyzer = CodeAnalyzer()
+    code = """
+import os
+import sys
+
+def hello():
+    print("hello")
+"""
+    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    assert result is not None
+    assert "Unused imports" in result
+    # Either os or sys should be reported as unused
+    assert "os" in result or "sys" in result
+
+
+def test_code_analyzer_detects_undefined_name(tmp_path: Path) -> None:
+    analyzer = CodeAnalyzer()
+    code = """
+def foo():
+    return x + y
+"""
+    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    assert result is not None
+    assert "Potentially undefined names" in result
+    assert "x" in result
+    assert "y" in result
 
 
 def test_pattern_finder_waits_for_enough_messages(tmp_path: Path) -> None:
@@ -89,6 +120,6 @@ def test_each_agent_gets_only_its_tool(tmp_path: Path) -> None:
     memory = AgentMemory(tmp_path / "m.jsonl")
     aegis = toolkit_for("Aegis-Worker", memory)
     vigil = toolkit_for("Vigil-Worker", memory)
-    assert [type(t).__name__ for t in aegis] == ["GeologyAnalyzer"]
+    assert [type(t).__name__ for t in aegis] == ["CodeAnalyzer"]
     assert [type(t).__name__ for t in vigil] == ["PatternFinder"]
     assert toolkit_for("Some-Other-Agent", memory) == ()
