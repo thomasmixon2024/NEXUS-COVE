@@ -8,7 +8,7 @@
 - Removed simulated token telemetry.
 - Added real task lifecycle metrics and structured logging.
 
-## Unreleased
+## 0.2.0 — Cove Horizon (2026-10-21)
 
 - Refactor: shared streaming JSONL helpers (`utils/jsonl.py`); memory and chatlog use bounded-tail reads.
 - Refactor: Worker message loop split into `_dispatch` / `_on_*` handlers (lower cyclomatic complexity on `run`).

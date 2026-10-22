@@ -30,32 +30,64 @@ python -m pytest -q && python -m compileall -q src tests
 
 
 ## Purpose
-NEXUS COVE is an experimental local multi-agent orchestration framework. Its job is to coordinate tasks between agents through explicit domain models, a transport layer, scheduling policies, execution backends, persistence, and observability.
+NEXUS COVE is a local multi-agent orchestration framework that runs entirely on-device (no cloud, no API keys). It coordinates AI agents through explicit domain models, a WebSocket transport layer, scheduling policies, execution backends, SQLite persistence, and real-time observability.
+
+**Core Philosophy**: *"Zero cloud. Zero API keys. Absolute edge."* — Built to run anywhere Python runs, including Android via Termux.
+
+**Benchmark**: Tested live on Android ARM64 via Termux with `qwen2.5:0.5b` (Q4_K_M) — **1.57 seconds latency (warm)**.
 
 This repository is the canonical source of truth. Git history is the mechanism for versioning; duplicate `backup`, `final`, `phase-ready`, or `old` source trees are prohibited.
 
-## Architecture
+## Architecture (7 Layers)
 
 ```text
-Client / UI
-    |
-    v
-Transport (WebSocket)
-    |
-    v
-Orchestration Manager -> Scheduler/Router -> Agent Registry
-    |                                  |
-    |                                  v
-    |                            Agent Backend
-    v
-Task/Result domain models
-    |
-    +--> Storage (SQLite)
-    +--> Observability (logs/metrics/health)
+┌─────────────────────────────────────────────────────────────────┐
+│                      Web/UI Client (index.html)                │
+│   • Nexus Chat (group + DMs)  • Speaker (TTS per agent)        │
+│   • Agent controls (pause/resume/stop)  • Chat log download    │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ WebSocket (Protocol v1)
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              WebSocket Transport (transport/websocket/server.py)│
+│   • Connection lifecycle  • Message routing (register, DM,      │
+│     broadcast, control, task_assign, task_result, presence)    │
+│   • Agent feed (last 200 agent→agent messages to browsers)     │
+│   • Chat log persistence (logs/nexus_chat.jsonl)               │
+│   • Origin allowlist (loopback + localhost:8080)               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Orchestration Manager (orchestration/manager.py)  │
+│   • Agent Registry (capabilities, status, load)                │
+│   • Task Registry (CREATED→QUEUED→ASSIGNED→RUNNING→COMPLETED)  │
+│   • CapabilityLoadScheduler (least-loaded capable agent)       │
+│   • DialogueGuard (10 replies/5min per agent, human resets)    │
+│   • Pause awareness (global + per-agent)                       │
+│   • Stop network propagation                                   │
+│   • RuntimeMetrics (submitted/completed/failed/duration)       │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+┌─────────────────────────┐  ┌─────────────────────────┐
+│    Agent Worker         │  │   SQLite Storage        │
+│  (agents/worker.py)     │  │  (storage/sqlite.py)    │
+│                         │  │                         │
+│  • Personalities        │  │  • Tasks table          │
+│  • Memory (JSONL)       │  │  • TaskResults table    │
+│  • Knowledge (per-agent)│  │  • Schema migrations    │
+│  • Tools (Geology,      │  │  • Summary stats        │
+│    Pattern)             │  │                         │
+│  • Ollama Replier       │  └─────────────────────────┘
+│  • Conversation Starter │
+│  • Pause/Resume/Stop    │
+└─────────────────────────┘
 ```
 
 Boundaries:
-- `core/`: domain models, protocol messages, exceptions. No network or database code.
+- `core/`: domain models, protocol messages, exceptions, dialogue guard. No network or database code.
 - `orchestration/`: task registry, scheduling, routing, manager lifecycle. No direct SQL.
 - `agents/`: agent lifecycle and execution backends. Backends are replaceable.
 - `transport/`: WebSocket protocol and connection lifecycle. No scheduling logic.
@@ -86,13 +118,19 @@ python -m nexus_cove.transport.websocket.server
 Run a manager:
 
 ```powershell
-python -m nexus_cove.orchestration.manager
+python -m nexus_cove.orchestration.manager --db data/cove.db
 ```
 
 Run a worker:
 
 ```powershell
 python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend
+```
+
+With real AI (Ollama):
+
+```powershell
+python -m nexus_cove.agents.worker --name alice --model qwen2.5:0.5b --personality Aegis-Worker
 ```
 
 ## Coding conventions
@@ -183,3 +221,5 @@ These skills are installed in `.claude/skills/` and managed by `NexusCove_Skills
 Also available (installed by same script):
 - `fewer-permission-prompts` — Reduce repeated permission prompts with narrow allow rules for safe, read-only commands.
 - `workflow-authoring` — Turn a multi-step task the user repeats into a reusable skill with a clear SKILL.md.
+- `code-review` — Review code changes for correctness, safety, definition-of-done.
+- `simplify` — Simplify recently changed code for reuse, clarity, efficiency
