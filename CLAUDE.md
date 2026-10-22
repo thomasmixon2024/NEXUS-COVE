@@ -133,6 +133,24 @@ With real AI (Ollama):
 python -m nexus_cove.agents.worker --name alice --model qwen2.5:0.5b --personality Aegis-Worker
 ```
 
+## Test Bed Management
+
+The project includes scripts for managing the full NEXUS COVE test bed (server, manager, workers, static server, browser):
+
+**Kill all NEXUS COVE processes and free ports:**
+```bash
+./cove-kill.sh
+```
+Idempotent — safe to run when nothing is up. Kills cove-worker, cove-manager, cove-server, and any process holding port 8765 or 8080.
+
+**Launch the full test bed:**
+```bash
+./cove-testbed.sh              # test backend (canned replies)
+./cove-testbed.sh --model      # real Ollama chat replies (requires ollama serve running)
+./cove-testbed.sh --no-browser # headless mode
+```
+This starts: WebSocket server (ws://127.0.0.1:8765), manager, 3 workers (Aegis-Worker, Elon-Worker, Vigil-Worker), static HTTP server (http://127.0.0.1:8080/web/index.html), and opens Chrome browser.
+
 ## Coding conventions
 
 - Python 3.11+.

@@ -5,7 +5,7 @@ cd "$(dirname "$0")" || exit 1
 
 echo "=== Stopping NEXUS-COVE ==="
 
-for pat in cove-worker cove-manager cove-server; do
+for pat in cove-worker cove-manager cove-server "nexus_cove.transport.websocket.server" "ollama serve"; do
     pids=$(pgrep -f "$pat" 2>/dev/null || true)
     if [ -n "$pids" ]; then
         kill $pids 2>/dev/null || true
@@ -29,6 +29,17 @@ if command -v ss >/dev/null 2>&1; then
     fi
 fi
 
+# Kill whatever still holds the Ollama port
+if command -v ss >/dev/null 2>&1; then
+    holders=$(ss -ltnp 2>/dev/null | grep ':11434' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true)
+    if [ -n "$holders" ]; then
+        kill $holders 2>/dev/null || true
+        sleep 0.3
+        kill -9 $holders 2>/dev/null || true
+        echo "  x port 11434 ($holders)"
+    fi
+fi
+
 # Kill static server
 holders=$(pgrep -f 'http.server 8080' 2>/dev/null || true)
 if [ -n "$holders" ]; then
@@ -39,7 +50,7 @@ fi
 rm -f .pids/*.pid 2>/dev/null || true
 
 sleep 0.5
-remaining=$(pgrep -af 'cove-server|cove-manager|cove-worker|http.server 8080' 2>/dev/null || true)
+remaining=$(pgrep -af 'cove-server|cove-manager|cove-worker|http.server 8080|ollama serve' 2>/dev/null || true)
 if [ -n "$remaining" ]; then
     echo
     echo "WARNING: still running:"
