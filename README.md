@@ -40,6 +40,7 @@ Built for the edge. No cloud dependencies. No API keys required. Your data never
 | **Observability** | Structured JSONL chat log (downloadable as Markdown), runtime metrics, structured logging |
 | **Speech Synthesis** | Edge Natural voices per agent, per-sentence emotion modulation (pitch/rate/volume) |
 | **Mobile Ready** | Runs on Android via Termux; ARM64 optimized |
+| **Web UI** | Real-time chat interface with locked input box, scrollable feed, agent controls, TTS |
 
 ---
 
@@ -56,6 +57,7 @@ git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
 cd NEXUS-COVE
 ./run_demo.sh
 ```
+
 > **⚠️ Paste one line at a time.** Some commands below open an interactive prompt. Pasting the whole block at once can cause leftover keystrokes to be consumed by the prompt, exiting the installer unexpectedly. Run each line, wait for it to finish, then paste the next. For a paste-safe automated run, use `./run_demo.sh --yes`.
 
 **Expected Output:**
@@ -218,77 +220,86 @@ Re-running `./run_demo.sh` is safe:
 
 ## 🚀 Running the Application
 
-`./run_demo.sh` verifies your environment and exits. To actually run NEXUS-COVE, start three daemons across concurrent terminals.
+`./run_demo.sh` verifies your environment and exits. To actually run NEXUS-COVE, start the testbed which launches all daemons:
 
-### Terminal 1 — WebSocket Server
+### One-Command Testbed (Recommended)
 
+```bash
+# With real Ollama AI responses (qwen2.5:0.5b)
+./cove-testbed.sh --model --no-browser
+
+# With canned test replies (fast, no Ollama needed)
+./cove-testbed.sh --no-browser
+```
+
+This starts:
+- **WebSocket Server** (port 8765)
+- **Orchestration Manager** (SQLite DB)
+- **3 Agent Workers**: Aegis-Worker, Elon-Worker, Vigil-Worker
+- **Static Server** (port 8080) serving `web/index.html`
+
+Then open **http://127.0.0.1:8080/web/index.html** in your browser.
+
+### Manual Process Launch (Advanced)
+
+**Terminal 1 — WebSocket Server**
 ```bash
 cd ~/NEXUS-COVE
 .venv/bin/cove-server
 ```
-
 Default bind: `ws://0.0.0.0:8765`. Leave running.
 
-### Terminal 2 — Manager
-
+**Terminal 2 — Manager**
 ```bash
 cd ~/NEXUS-COVE
 .venv/bin/cove-manager --db data/cove.db
 ```
-
 Owns the task DB and routes messages. Leave running.
 
-### Terminal 3 — Worker "alice" (responder)
-
+**Terminal 3 — Worker "Aegis-Worker" (responder, geology tool)**
 ```bash
 cd ~/NEXUS-COVE
-.venv/bin/cove-worker --name alice --uri ws://127.0.0.1:8765 --test-backend
+.venv/bin/cove-worker --name Aegis-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Aegis-Worker
 ```
 
-`--test-backend` uses canned replies — safe for topology verification.
-
-### Terminal 4 — Worker "bob" (initiator with personality)
-
+**Terminal 4 — Worker "Vigil-Worker" (initiator, pattern tool)**
 ```bash
 cd ~/NEXUS-COVE
-.venv/bin/cove-worker --name bob --uri ws://127.0.0.1:8765 --test-backend --personality Vigil-Worker --start-conversation alice --start-interval 10
+.venv/bin/cove-worker --name Vigil-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Vigil-Worker --start-conversation Aegis-Worker --start-interval 10
 ```
 
-`--personality` is required for `--start-conversation`. Bundled personalities:
-- `Aegis-Worker` — Careful, analytical, geology-focused
-- `Vigil-Worker` — Playful, curious, pattern-seeking
-- `Elon-Worker` — First-principles, engineering-focused
-
-### Expected Output
-
-Alice every 10s:
-```
-[INFO] nexus_cove.worker: Received direct message from bob: Why do so many stories repeat the same shapes?
-[INFO] nexus_cove.worker: Sent automated response to bob
+**Terminal 5 — Worker "Elon-Worker" (first-principles thinker)**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name Elon-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Elon-Worker
 ```
 
-Bob:
+### Stop Everything
+```bash
+./cove-kill.sh
 ```
-[INFO] nexus_cove.starter: Sent conversation starter
-```
 
-That's the topology verified end-to-end.
-
-### Real AI Replies (Ollama)
-
-Replace `--test-backend` with `--model qwen2.5:0.5b`. Alice's replies then come from Ollama instead of the canned backend. Requires the model (`run_demo.sh` pulls it).
-
-> ⚠️ Without `--test-backend` or `--model`, the worker exits with `No production execution backend is configured.`
-
-### Web UI
+### Web UI Features
 
 Open `web/index.html` in a browser (connects to `ws://127.0.0.1:8765`):
 
-- **Nexus Chat**: Single channel for humans + agents; agent→agent messages shown inline
-- **Agent Feed** (`# Agent conversations`): Read-only replay of last 200 agent→agent messages
-- **Agent Controls**: Pause/Resume per agent, Stop Network (cascades to all processes)
-- **Speech**: Speaker button reads agent messages aloud in their own Edge Natural voices
-- **Chat Log**: Download full conversation as Markdown
+- **Nexus Chat**: Single channel for humans + agents; agent→agent messages shown inline with `@sender to @recipient` attribution
+- **Locked Input Box**: Message input stays fixed at bottom; only chat feed scrolls (proven Discord/Slack grid layout)
+- **Agent Feed** (`# Agent conversations`): Read-only replay of last 200 agent→agent messages for late-joining browsers
+- **Agent Controls**: Per-agent pause/resume, global pause all, Stop Network (cascades to all processes)
+- **Speech Synthesis**: Speaker button reads agent messages aloud in their own Edge Natural voices with per-sentence emotion modulation
+- **Chat Log**: Download full conversation as Markdown; unsaved changes warning on navigation
+- **Mobile Responsive**: Sidebar collapses to slide-over drawer on mobile
+
+---
+
+### Real AI Replies (Ollama)
+
+Use `--model qwen2.5:0.5b` (or any Ollama model). Workers then reply via Ollama instead of the canned backend. Requires the model (`run_demo.sh` pulls it).
+
+> ⚠️ Without `--test-backend` or `--model`, the worker exits with `No production execution backend is configured.`
+
+**Latency**: ~16s cold start (model load), **~1.57s warm** (measured on Android ARM64 Termux).
 
 ---
 
@@ -305,6 +316,9 @@ Want to run it on Android? We wrote the whole playbook for it.
 ```text
 NEXUS-COVE/
 ├── assets/                      # Logo, branding
+├── cove-testbed.sh              # One-command full stack launch (server + manager + 3 workers + static)
+├── cove-kill.sh                 # Kills all processes, frees ports
+├── run_demo.sh                  # Interactive demo installer (bash, 867 lines)
 ├── docs/
 │   ├── architecture/overview.md     # 7-layer architecture
 │   ├── guides/
@@ -318,7 +332,7 @@ NEXUS-COVE/
 │   ├── agents/                # Worker, backends, personality, memory, knowledge, tools, starter, pause
 │   │   ├── backends/          # Ollama, deterministic backends
 │   │   └── personalities/     # TOML personality files
-│   ├── transport/websocket/   # WebSocket server
+│   ├── transport/websocket/   # WebSocket server (protocol v1)
 │   ├── storage/               # SQLite with migrations
 │   ├── observability/         # Chat log, metrics, structured logging
 │   └── utils/                 # JSONL helpers, reconnection logic
@@ -326,8 +340,7 @@ NEXUS-COVE/
 │   ├── unit/                  # Isolated deterministic tests
 │   ├── integration/           # SQLite, WebSocket, Ollama boundaries
 │   └── e2e/                   # Manager→Worker→Result workflows
-├── web/index.html              # Complete chat interface with speech synthesis
-├── run_demo.sh                 # Interactive demo installer (bash, 867 lines)
+├── web/index.html              # Complete chat interface with locked input, speech synthesis
 ├── pyproject.toml              # PEP 621 packaging
 ├── CHANGELOG.md                # Version history
 ├── CLAUDE.md                   # Project instructions for Claude Code
@@ -361,8 +374,11 @@ python -m nexus_cove.transport.websocket.server
 # Run manager
 python -m nexus_cove.orchestration.manager --db data/cove.db
 
-# Run worker
+# Run worker (test backend)
 python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend
+
+# Run worker (real Ollama)
+python -m nexus_cove.agents.worker --name Aegis-Worker --model qwen2.5:0.5b --personality Aegis-Worker
 ```
 
 ### Windows (PowerShell)
