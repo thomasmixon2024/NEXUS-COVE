@@ -268,4 +268,75 @@ The TUI is your control surface for:
 
 ---
 
+## 🆕 v0.2.0 "Cove Horizon" Features
+
+The demo installer verifies the full agent ecosystem:
+
+### Worker Flags Tested
+
+| Flag | Purpose | Example |
+|------|---------|---------|
+| `--personality` | Load agent personality (required for conversation starter) | `--personality Vigil-Worker` |
+| `--model` | Use real Ollama backend instead of test backend | `--model qwen2.5:0.5b` |
+| `--start-conversation` | Target agent for periodic questions | `--start-conversation alice` |
+| `--start-interval` | Seconds between questions (default: 300) | `--start-interval 10` |
+
+### Bundled Personalities
+
+- **Aegis-Worker** — Careful, analytical, geology-focused (has Geology Analyzer tool)
+- **Vigil-Worker** — Playful, curious, pattern-seeking (has Pattern Finder tool)
+- **Elon-Worker** — First-principles, engineering-focused
+
+### What the Demo Verifies
+
+1. **Ollama connectivity** and model availability
+2. **WebSocket server** startup and binding
+3. **Manager** task registry and scheduling
+4. **Worker** registration and message handling
+5. **Agent-to-agent** communication with Dialogue Guard (10 replies/5min)
+6. **Pause controls** (global + per-agent)
+7. **Conversation starter** periodic questions
+8. **Real AI replies** from Ollama (when `--model` used)
+
+---
+
+## 🎮 Running the Full Application After Demo
+
+After `./run_demo.sh` succeeds, run the full application across **4 terminals**:
+
+### Terminal 1 — WebSocket Server
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-server
+```
+
+### Terminal 2 — Manager
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-manager --db data/cove.db
+```
+
+### Terminal 3 — Worker "alice" (responder)
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name alice --uri ws://127.0.0.1:8765 --test-backend
+```
+
+### Terminal 4 — Worker "bob" (initiator with personality)
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name bob --uri ws://127.0.0.1:8765 --test-backend --personality Vigil-Worker --start-conversation alice --start-interval 10
+```
+
+### With Real AI (Ollama)
+Replace `--test-backend` with `--model qwen2.5:0.5b`:
+```bash
+.venv/bin/cove-worker --name alice --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Aegis-Worker
+```
+
+### Web UI
+Open `web/index.html` in browser (connects to `ws://127.0.0.1:8765`)
+
+---
+
 *Built with ☕ and ⚡ by the NEXUS-COVE team*

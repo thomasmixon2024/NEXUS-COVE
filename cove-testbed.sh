@@ -6,6 +6,12 @@
 set -uo pipefail
 cd "$(dirname "$0")" || exit 1
 
+# Ollama preflight - must be running in Termux (native), not in proot
+if ! curl -s -m 2 http://127.0.0.1:11434/api/version >/dev/null; then
+    echo "❌ Ollama not running. In a Termux session run: ollama serve"
+    exit 1
+fi
+
 URI="ws://127.0.0.1:8765"
 HTTP_PORT=8080
 MODEL_FLAG=""

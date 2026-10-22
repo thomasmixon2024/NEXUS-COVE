@@ -29,7 +29,7 @@ ollama --version
 
 ### 4. Clone NEXUS COVE (or copy project files)
 ```bash
-git clone https://github.com/your-org/NEXUS-COVE.git
+git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
 cd NEXUS-COVE
 ```
 
@@ -88,6 +88,72 @@ This test is automatically skipped if Ollama is not running.
 
 ---
 
+## v0.2.0 "Cove Horizon" — Mobile Agent Features
+
+### Worker Command-Line Flags for Mobile
+
+| Flag | Description | Required With |
+|------|-------------|---------------|
+| `--name` | Agent name (required) | — |
+| `--uri` | WebSocket URI (default: ws://127.0.0.1:8765) | — |
+| `--personality` | Personality: `Aegis-Worker`, `Vigil-Worker`, `Elon-Worker` | `--start-conversation` |
+| `--model` | Ollama model (e.g., `qwen2.5:0.5b`, `llama3.2:1b`) | — |
+| `--test-backend` | Use deterministic test backend | — |
+| `--start-conversation` | Target agent for periodic questions | `--personality` |
+| `--start-interval` | Seconds between questions (default: 300) | `--start-conversation` |
+
+**Required combinations:**
+- `--test-backend` OR `--model` (one is required)
+- `--personality` required if using `--start-conversation`
+
+### Bundled Personalities for Mobile
+
+| Personality | Temperament | Tool |
+|-------------|-------------|------|
+| **Aegis-Worker** | Careful, analytical, geology-focused | Geology Analyzer (reads `reference/geology.csv`) |
+| **Vigil-Worker** | Playful, curious, pattern-seeking | Pattern Finder (analyzes agent's memory) |
+| **Elon-Worker** | First-principles, engineering-focused | — |
+
+### Mobile-Optimized Example Sessions
+
+#### Test Topology (4 Termux Sessions)
+```bash
+# Session 1: Server
+python -m nexus_cove.transport.websocket.server
+
+# Session 2: Manager
+python -m nexus_cove.orchestration.manager --db data/cove.db
+
+# Session 3: Worker "alice" (responder)
+python -m nexus_cove.agents.worker --name alice --uri ws://127.0.0.1:8765 --test-backend
+
+# Session 4: Worker "bob" (initiator)
+python -m nexus_cove.agents.worker --name bob --uri ws://127.0.0.1:8765 --test-backend --personality Vigil-Worker --start-conversation alice --start-interval 10
+```
+
+#### Real AI on Mobile (2+ Sessions)
+```bash
+# Session 1: Server + Manager (can run in same session with &)
+python -m nexus_cove.transport.websocket.server &
+python -m nexus_cove.orchestration.manager --db data/cove.db
+
+# Session 2: Worker with real Ollama
+python -m nexus_cove.agents.worker --name alice --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Aegis-Worker
+
+# Session 3: Another worker
+python -m nexus_cove.agents.worker --name bob --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Vigil-Worker --start-conversation alice --start-interval 30
+```
+
+#### Web UI on Mobile
+Open `web/index.html` in a mobile browser (Chrome/Firefox):
+- Connects to `ws://127.0.0.1:8765` (or your device's LAN IP)
+- Nexus Chat: group + DMs with agents
+- Agent Feed: read-only agent→agent message replay
+- Speech: Edge Natural voices (if browser supports)
+- Pause/Resume/Stop controls
+
+---
+
 ## Troubleshooting
 
 ### Ollama daemon won't start
@@ -118,6 +184,11 @@ ollama pull qwen2.5:0.5b
 - Run test once, not in a loop
 - Let device cool between runs
 - Results may be slower on sustained load
+
+### WebSocket connection fails on mobile browser
+- Use device's LAN IP instead of `127.0.0.1`: `ws://192.168.x.x:8765`
+- Ensure Termux allows network access
+- Check firewall/VPN settings
 
 ---
 
@@ -158,3 +229,14 @@ python -m pytest tests/ -v
 ## Closing the A− Gap
 
 The human testing report gave NEXUS COVE an **A−** because Ollama-backed agent replies were untested. Running this test on a device with Ollama installed and passing will close that gap, potentially achieving a full **A** grade.
+
+---
+
+## 📱 Mobile-Specific Tips
+
+1. **Termux sessions**: Swipe left → NEW SESSION for each daemon
+2. **Wake lock**: `termux-wake-lock` prevents CPU sleep during long runs
+3. **Battery**: Plug in for sustained Ollama inference
+4. **Storage**: Models stored in `~/.ollama/models/` (~400MB for 0.5B)
+5. **Logs**: All logs in `./logs/` — check `demo-*.log` for test results
+6. **Personalities**: TOML files in `src/nexus_cove/agents/personalities/` — editable for custom agents

@@ -3,62 +3,58 @@
 
   <h1>NEXUS-COVE</h1>
 
-  <p><strong>A lightweight, async Python framework for running local AI agents.</strong><br>
+  <p><strong>A local multi-agent orchestration framework.</strong><br>
   <em>Zero cloud. Zero API keys. Absolute edge.</em></p>
 
   [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
   [![Ollama](https://img.shields.io/badge/Backend-Ollama-black.svg)](https://ollama.com)
   [![Termux Ready](https://img.shields.io/badge/Android-Termux-green.svg)](https://termux.dev)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-yellow.svg)](LICENSE)
+  [![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0%20%22Cove%20Horizon%22-orange.svg)](CHANGELOG.md)
 </div>
 
 ---
 
 ## 🧠 What is this?
 
-**NEXUS-COVE** is an asynchronous agent framework designed to be absurdly lightweight. It strips out the bloat of modern AI wrappers and gets straight to the point: connecting your agents to local, offline LLMs so they can talk to each other without paying a dime to OpenAI.
+**NEXUS-COVE** is an asynchronous multi-agent orchestration framework that runs entirely on-device. It coordinates AI agents through explicit domain models, a WebSocket transport layer, scheduling policies, execution backends, SQLite persistence, and real-time observability.
 
-Built for the edge. Built for speed. Built to run anywhere Python runs.
+Built for the edge. No cloud dependencies. No API keys required. Your data never leaves your machine.
 
----
-
-## 🔥 THE TERMUX FLEX 🔥
-
-We didn't just build this for 64-core server racks. We built it to run in your pocket.
-
-> **Benchmark:** Tested live on an **Android ARM64 device via Termux**.
-> **Model:** `qwen2.5:0.5b` (Q4_K_M)
-> **Latency:** **1.57 seconds** (Warm) ⚡
-
-If it runs on Android, it'll run on your toaster.
+**Benchmark**: Tested live on Android ARM64 via Termux with `qwen2.5:0.5b` (Q4_K_M) — **1.57 seconds latency (warm)**.
 
 ---
 
-## ⚡ Core Features
+## ⚡ Core Features (v0.2.0 "Cove Horizon")
 
-* **True Async:** Built from the ground up with `asyncio` and `aiohttp` for non-blocking agent chatter.
-* **Backend Agnostic:** Ships with native support for Ollama.
-* **No API Keys:** Your data stays on your machine. Period.
-* **Modular:** Want to add a new LLM backend? Drop it in `src/nexus_cove/agents/backends/`.
-* **Python 3.14 Ready:** Constraint tested and verified up to `<3.15`.
+| Category | Features |
+|----------|----------|
+| **Agent Ecosystem** | 3 bundled personalities (Aegis, Vigil, Elon) loaded from TOML; per-agent memory, knowledge folders, and tools |
+| **Orchestration** | Task registry (CREATED→QUEUED→ASSIGNED→RUNNING→COMPLETED), capability-load scheduler, agent registry |
+| **Communication** | WebSocket protocol v1, group chat (Nexus Chat), direct messages, agent feed (last 200 messages replayed) |
+| **Safety & Control** | Dialogue Guard (10 agent→agent replies/5 min, human resets), global + per-agent pause, human-only stop network |
+| **Local LLM** | Ollama integration (loopback-only), `ModelUnavailable` exception (no fake text), 1200-char sentence-boundary limit |
+| **Memory & Knowledge** | JSONL memory with highlights/checkpoints, per-agent knowledge folders, `SHARE:` directive for voluntary sharing |
+| **Tools** | Geology Analyzer (Aegis - reads CSV), Pattern Finder (Vigil - analyzes memory) — real data only |
+| **Conversation Starter** | Periodic questions to peers from model or personality openings |
+| **Observability** | Structured JSONL chat log (downloadable as Markdown), runtime metrics, structured logging |
+| **Speech Synthesis** | Edge Natural voices per agent, per-sentence emotion modulation (pitch/rate/volume) |
+| **Mobile Ready** | Runs on Android via Termux; ARM64 optimized |
+| **Web UI** | Real-time chat interface with locked input box, scrollable feed, agent controls, TTS |
 
 ---
 
-## 🚀 Quick Start (The 10-Second Setup)
+## 🚀 Quick Start
 
-**Don't worry, you don't need to be a DevOps wizard to try this.** We built a one-click script that does *everything* for you (starts Ollama, pulls the model, installs dependencies, and runs the test).
-
-🔗 **Repository:** [github.com/thomasmixon2024/NEXUS-COVE](https://github.com/thomasmixon2024/NEXUS-COVE)
-
-[![GitHub Repo](https://img.shields.io/badge/GitHub-thomasmixon2024%2FNEXUS--COVE-black?logo=github)](https://github.com/thomasmixon2024/NEXUS-COVE)
+**Repository**: [github.com/thomasmixon2024/NEXUS-COVE](https://github.com/thomasmixon2024/NEXUS-COVE)
 
 ```bash
 git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
 cd NEXUS-COVE
 ./run_demo.sh
 ```
-> **⚠️ Paste one line at a time.** Some commands below open an interactive prompt. Pasting the whole block at once can cause leftover keystrokes to be consumed by the prompt, exiting the installer unexpectedly. Run each line, wait for it to finish, then paste the next. For a paste-safe automated run, use `./run_demo.sh --yes`.
 
+> **⚠️ Paste one line at a time.** Some commands below open an interactive prompt. Pasting the whole block at once can cause leftover keystrokes to be consumed by the prompt, exiting the installer unexpectedly. Run each line, wait for it to finish, then paste the next. For a paste-safe automated run, use `./run_demo.sh --yes`.
 
 **Expected Output:**
 
@@ -76,9 +72,9 @@ Warming up model...
 
 📖 **[Full Demo Installation Guide](docs/guides/demo-installation-guide.md)** — comprehensive walkthrough with all flags, error recovery, troubleshooting, and pro tips.
 
-### 🎮 Interactive Installer (New in v2.0)
+### 🎮 Interactive Installer
 
-The `run_demo.sh` script now features an interactive TUI (Terminal User Interface) with error recovery:
+The `run_demo.sh` script features an interactive TUI (Terminal User Interface) with error recovery:
 
 ```bash
 # Interactive mode (default on TTY)
@@ -162,144 +158,149 @@ Re-running `./run_demo.sh` is safe:
 - Reuses existing virtual environment (`.venv-termux` or `.venv`)
 - Skips re-pulling already-present Ollama model
 - Does not restart a healthy Ollama daemon
+- `pip` handles idempotency automatically
 
-### 🏗️ Architecture: Three Daemons
+---
 
-NEXUS-COVE runs as three cooperating processes:
+## 🏗️ Architecture: 7-Layer Design
 
-- `cove-server` — WebSocket transport hub
-- `cove-manager` — orchestration and task routing
-- `cove-worker` — agents that process tasks and reply
-
-`run_demo.sh` is a **smoke test** that verifies prerequisites (Python,
-Ollama, model, websockets). It is not the application interface — see
-[Running the Application](#-running-the-application).
-
-There is no built-in web dashboard. The daemons log to stdout; run each
-in its own terminal session. On Termux, use swipe-left → NEW SESSION.
-
-### ❌ Exit Codes
-
-| Code | Meaning |
-|------|---------|
-| 10 | Prerequisite failure |
-| 20 | Ollama failure |
-| 30 | Model download failure |
-| 40 | Virtual environment failure |
-| 50 | Dependency installation failure |
-| 60 | Demo runtime failure |
-| 64 | Bad CLI usage (sysexits.h) |
-
-### 🔧 Common Failure Fixes
-
-| Error | Fix |
-|-------|-----|
-| `cargo`, `rustc`, `maturin` not found | Install Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \| sh` |
-| `Python.h: No such file or directory` | Install Python headers: `apt install python3-dev` |
-| `gcc: command not found` / `make: command not found` | Install build tools: `apt install build-essential` |
-| `pip` metadata / `pyproject.toml` failure | Use `--only-binary=:all:` (option 4 in menu) or retry |
-| Network timeout during install | Check connectivity, then retry (option 2 in menu) |
-| Dev extras (pytest, ruff) fail | Choose "Skip optional dependencies" (option 5) |
-
-### 🛠️ Manual Installation (Alternative)
-
-If you prefer manual setup:
-
-<details>
-<summary><b>🛠️ Prefer to do it manually? Click here to expand.</b></summary>
-
-<br>
-
-**1. Prerequisites**
-
-You need [Ollama](https://ollama.com/) installed and running on your host machine.
-
-```bash
-# Start the Ollama daemon
-ollama serve
-
-# Pull the lightweight test model
-ollama pull qwen2.5:0.5b
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      Web/UI Client (index.html)                │
+│   • Nexus Chat (group + DMs)  • Speaker (TTS per agent)        │
+│   • Agent controls (pause/resume/stop)  • Chat log download    │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ WebSocket (Protocol v1)
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              WebSocket Transport (transport/websocket/server.py)│
+│   • Connection lifecycle  • Message routing (register, DM,      │
+│     broadcast, control, task_assign, task_result, presence)    │
+│   • Agent feed (last 200 agent→agent messages to browsers)     │
+│   • Chat log persistence (logs/nexus_chat.jsonl)               │
+│   • Origin allowlist (loopback + localhost:8080)               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Orchestration Manager (orchestration/manager.py)  │
+│   • Agent Registry (capabilities, status, load)                │
+│   • Task Registry (CREATED→QUEUED→ASSIGNED→RUNNING→COMPLETED)  │
+│   • CapabilityLoadScheduler (least-loaded capable agent)       │
+│   • DialogueGuard (10 replies/5min per agent, human resets)    │
+│   • Pause awareness (global + per-agent)                       │
+│   • Stop network propagation                                   │
+│   • RuntimeMetrics (submitted/completed/failed/duration)       │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+┌─────────────────────────┐  ┌─────────────────────────┐
+│    Agent Worker         │  │   SQLite Storage        │
+│  (agents/worker.py)     │  │  (storage/sqlite.py)    │
+│                         │  │                         │
+│  • Personalities        │  │  • Tasks table          │
+│  • Memory (JSONL)       │  │  • TaskResults table    │
+│  • Knowledge (per-agent)│  │  • Schema migrations    │
+│  • Tools (Geology,      │  │  • Summary stats        │
+│    Pattern)             │  │                         │
+│  • Ollama Replier       │  └─────────────────────────┘
+│  • Conversation Starter │
+│  • Pause/Resume/Stop    │
+└─────────────────────────┘
 ```
 
-**2. Install NEXUS-COVE**
-
-Clone the repo and install it in editable mode:
-
-```bash
-git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
-cd NEXUS-COVE
-pip install -e ".[dev]"
-```
-
-**3. Run the Verification Test**
-
-```bash
-python tests/termux_ollama_test.py
-```
-
-</details>
+**Boundaries enforced**: No layer reaches around another for convenience. Core, orchestration, agents, transport, storage, and observability are independently testable.
 
 ---
 
 ## 🚀 Running the Application
 
-`./run_demo.sh` verifies your environment and exits. To actually run
-NEXUS-COVE, start three daemons across concurrent Termux sessions
-(swipe left → NEW SESSION).
+`./run_demo.sh` verifies your environment and exits. To actually run NEXUS-COVE, start the testbed which launches all daemons:
 
-### Terminal 1 — WebSocket server
+### One-Command Testbed (Recommended)
 
-    cd ~/NEXUS-COVE
-    .venv/bin/cove-server
+```bash
+# With real Ollama AI responses (qwen2.5:0.5b)
+./cove-testbed.sh --model --no-browser
 
+# With canned test replies (fast, no Ollama needed)
+./cove-testbed.sh --no-browser
+```
+
+This starts:
+- **WebSocket Server** (port 8765)
+- **Orchestration Manager** (SQLite DB)
+- **3 Agent Workers**: Aegis-Worker, Elon-Worker, Vigil-Worker
+- **Static Server** (port 8080) serving `web/index.html`
+
+Then open **http://127.0.0.1:8080/web/index.html** in your browser.
+
+> **Note**: `cove-testbed.sh` now includes an Ollama preflight check. If Ollama isn't running, it will exit with a clear error: `❌ Ollama not running. In a Termux session run: ollama serve`
+
+### Manual Process Launch (Advanced)
+
+**Terminal 1 — WebSocket Server**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-server
+```
 Default bind: `ws://0.0.0.0:8765`. Leave running.
 
-### Terminal 2 — Manager
-
-    cd ~/NEXUS-COVE
-    .venv/bin/cove-manager --uri ws://127.0.0.1:8765
-
+**Terminal 2 — Manager**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-manager --db data/cove.db
+```
 Owns the task DB and routes messages. Leave running.
 
-### Terminal 3 — Worker "alice" (responder)
+**Terminal 3 — Worker "Aegis-Worker" (responder, geology tool)**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name Aegis-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Aegis-Worker
+```
 
-    cd ~/NEXUS-COVE
-    .venv/bin/cove-worker --name alice --uri ws://127.0.0.1:8765 --test-backend
+**Terminal 4 — Worker "Vigil-Worker" (initiator, pattern tool)**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name Vigil-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Vigil-Worker --start-conversation Aegis-Worker --start-interval 10
+```
 
-`--test-backend` uses canned replies — safe for topology verification.
+**Terminal 5 — Worker "Elon-Worker" (first-principles thinker)**
+```bash
+cd ~/NEXUS-COVE
+.venv/bin/cove-worker --name Elon-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Elon-Worker
+```
 
-### Terminal 4 — Worker "bob" (initiator)
+### Stop Everything
+```bash
+./cove-kill.sh
+```
 
-    cd ~/NEXUS-COVE
-    .venv/bin/cove-worker --name bob --uri ws://127.0.0.1:8765 --test-backend --personality Vigil-Worker --start-conversation alice --start-interval 10
+### Web UI Features
 
-`--personality` is required for `--start-conversation`. Bundled:
-`Aegis-Worker`, `Elon-Worker`, `Vigil-Worker`.
+Open `web/index.html` in a browser (connects to `ws://127.0.0.1:8765`):
 
-### Expected output
-
-Alice every 10s:
-
-    [INFO] nexus_cove.worker: Received direct message from bob: Why do so many stories repeat the same shapes?
-    [INFO] nexus_cove.worker: Sent automated response to bob
-
-Bob:
-
-    [INFO] nexus_cove.starter: Sent conversation starter
-
-That's the topology verified end-to-end.
-
-### Real AI replies
-
-Replace `--test-backend` with `--model qwen2.5:0.5b`. Alice's replies
-then come from Ollama instead of the canned backend. Requires the model
-(`run_demo.sh` pulls it).
-
-> ⚠️ Without `--test-backend` or `--model`, the worker exits with
-> `No production execution backend is configured.`
+- **Nexus Chat**: Single channel for humans + agents; agent→agent messages shown inline with `@sender to @recipient` attribution
+- **Locked Input Box**: Message input stays fixed at bottom; only chat feed scrolls (proven Discord/Slack grid layout)
+- **Agent Feed** (`# Agent conversations`): Read-only replay of last 200 agent→agent messages for late-joining browsers
+- **Agent Controls**: Per-agent pause/resume, global pause all, Stop Network (cascades to all processes)
+- **Speech Synthesis**: Speaker button reads agent messages aloud in their own Edge Natural voices with per-sentence emotion modulation
+- **Chat Log**: Download full conversation as Markdown; unsaved changes warning on navigation
+- **Mobile Responsive**: Sidebar collapses to slide-over drawer on mobile
 
 ---
+
+### Real AI Replies (Ollama)
+
+Use `--model qwen2.5:0.5b` (or any Ollama model). Workers then reply via Ollama instead of the canned backend. Requires the model (`run_demo.sh` pulls it).
+
+> ⚠️ Without `--test-backend` or `--model`, the worker exits with `No production execution backend is configured.`
+
+**Latency**: ~16s cold start (model load), **~1.57s warm** (measured on Android ARM64 Termux).
+
+---
+
 ## 📱 Mobile / Termux Setup
 
 Want to run it on Android? We wrote the whole playbook for it.
@@ -312,23 +313,139 @@ Want to run it on Android? We wrote the whole playbook for it.
 
 ```text
 NEXUS-COVE/
-├── docs/operations/       # Deployment guides (Termux, etc.)
-├── src/nexus_cove/        # Core framework
-│   └── agents/backends/   # LLM integrations (Ollama)
-├── tests/                 # Pytest suite & standalone scripts
-├── run_demo.sh            # One-click verification script
-└── pyproject.toml         # PEP 621 packaging
+├── assets/                      # Logo, branding
+├── cove-testbed.sh              # One-command full stack launch (server + manager + 3 workers + static)
+├── cove-kill.sh                 # Kills all processes, frees ports
+├── run_demo.sh                  # Interactive demo installer (bash, ~866 lines)
+├── examples/
+│   └── agent-invocations/       # Example agent persona definitions (Architect, Debug, Docs-Ops, Validator)
+├── plugins/
+│   ├── nexus-cove-enhancement/  # Claude Code plugin (hooks + TypeScript types)
+│   └── README.md                # Plugin directory overview
+├── archive/                     # Superseded/consolidated directories
+│   ├── NexusCove_Skills_Plugins_Installers_v3/  # Skill/plugin installer scripts
+│   ├── pack_v3/                 # Packaged artifact (.claude/, src/)
+│   ├── reference/               # Former reference data (geology.csv)
+│   ├── CODE_OF_CONDUCT.md       # Archived (solo project)
+│   └── SECURITY.md              # Archived (solo project)
+├── docs/
+│   ├── architecture/overview.md     # 7-layer architecture
+│   ├── guides/
+│   │   ├── demo-installation-guide.md
+│   │   └── local-development.md
+│   ├── operations/termux-ollama.md
+│   └── roadmap/phase-3.md
+├── src/nexus_cove/                 # Core framework
+│   ├── core/                  # Domain models, protocols, dialogue guard
+│   ├── orchestration/         # Manager, registry, scheduler, task registry
+│   ├── agents/                # Worker, backends, personality, memory, knowledge, tools, starter, pause
+│   │   ├── backends/          # Ollama, deterministic backends
+│   │   └── personalities/     # TOML personality files
+│   ├── transport/websocket/   # WebSocket server (protocol v1)
+│   ├── storage/               # SQLite with migrations
+│   ├── observability/         # Chat log, metrics, structured logging
+│   └── utils/                 # JSONL helpers, reconnection logic
+├── tests/
+│   ├── unit/                  # Isolated deterministic tests
+│   ├── integration/           # SQLite, WebSocket, Ollama boundaries
+│   └── e2e/                   # Manager→Worker→Result workflows
+├── web/index.html              # Complete chat interface with locked input, speech synthesis
+├── pyproject.toml              # PEP 621 packaging
+├── CHANGELOG.md                # Version history
+├── CLAUDE.md                   # Project instructions for Claude Code
+├── AGENTS.md                   # Agent development guidelines
+└── LICENSE                     # All Rights Reserved
+```
+
+---
+
+## 🛠️ Development Commands
+
+From repository root:
+
+```bash
+# Setup
+python3 -m venv .venv && source .venv/bin/activate
+python -m pip install -e ".[dev]"
+
+# Test
+python -m pytest -q
+
+# Lint
+python -m ruff check .
+
+# Compile check
+python -m compileall -q src tests
+
+# Run server
+python -m nexus_cove.transport.websocket.server
+
+# Run manager
+python -m nexus_cove.orchestration.manager --db data/cove.db
+
+# Run worker (test backend)
+python -m nexus_cove.agents.worker --name Aegis-Worker --test-backend
+
+# Run worker (real Ollama)
+python -m nexus_cove.agents.worker --name Aegis-Worker --model qwen2.5:0.5b --personality Aegis-Worker
+```
+
+### Windows (PowerShell)
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+python -m pytest -q
+python -m compileall -q src tests
+python -m ruff check .
+```
+
+---
+
+## 🧪 Test Structure
+
+```
+tests/
+├── unit/
+│   ├── core/           # test_dialogue.py, test_models.py, test_protocols.py
+│   ├── orchestration/  # test_manager_submit.py, test_scheduler.py, test_task_registry.py
+│   ├── storage/        # test_sqlite.py
+│   ├── transport/      # test_server_protocol.py
+│   └── agents/         # test_agent_pause.py, test_backend.py, test_knowledge.py,
+│                       # test_memory_and_tools.py, test_memory_behavior.py,
+│                       # test_personality.py, test_pause.py, test_starter.py
+├── integration/
+│   ├── test_agent_feed.py
+│   ├── test_chat_log.py
+│   ├── test_direct_message_kind.py
+│   ├── test_network_stop.py
+│   ├── test_ollama_replier.py
+│   ├── test_origin_policy.py
+│   ├── test_pause_cancels_reply.py
+│   ├── test_presence.py
+│   ├── test_storage_boundary.py
+│   └── test_websocket_transport.py
+└── e2e/
+    ├── test_manager_worker.py
+    └── test_process_exit_status.py
 ```
 
 ---
 
 ## 🤝 Contributing
 
-Got a new backend? Found a bug? PRs are wide open. Just make sure your tests pass and your code is formatted.
+Got a new backend? Found a bug? PRs are welcome. Ensure:
+1. Tests pass (`python -m pytest -q`)
+2. Code compiles (`python -m compileall -q src tests`)
+3. Lint passes (`python -m ruff check .`)
+4. Documentation matches implementation
+
+---
 
 ## 📝 License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for more information.
+Distributed under **All Rights Reserved**. See [LICENSE](LICENSE) for more information.
 
 ---
 
