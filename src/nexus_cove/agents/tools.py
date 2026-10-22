@@ -183,13 +183,109 @@ class DevAssistant:
         return "\n".join(lines)
 
 
+class FirstPrinciplesAssistant:
+    """Analyzes problems from a first-principles perspective, identifying
+    fundamental constraints, engineering bottlenecks, and optimization
+    opportunities at the level of physics and production efficiency.
+
+    Triggers on keywords related to first-principles thinking, constraint
+    analysis, and orders-of-magnitude evaluation — consistent with
+    Elon-Worker's temperament: "first-principles driven, relentlessly
+    fast-paced, and intensely focused on physics, engineering bottlenecks,
+    and the expansion of consciousness."
+    """
+
+    name = "First Principles Assistant"
+
+    _TRIGGERS = frozenset(
+        {
+            "first principles",
+            "fundamental",
+            "constraint",
+            "constraints",
+            "bottleneck",
+            "bottlenecks",
+            "optimize",
+            "orders of magnitude",
+            "physics",
+            "engineering",
+            "production loop",
+            "multi-planetary",
+            "assumptions",
+            "core constraint",
+            "essential constraint",
+        }
+    )
+
+    def run(self, text: str) -> str | None:
+        lowered = text.lower()
+        if not any(t in lowered for t in self._TRIGGERS):
+            return None
+
+        # Identify trigger keywords and provide a first-principles analysis.
+        lines: list[str] = []
+
+        # Look for "orders of magnitude" estimates
+        if "orders of magnitude" in lowered:
+            lines.append(
+                "- First principles: Estimate the dominant term and scale it."
+            )
+
+        # Look for constraint-related queries
+        if "constraint" in lowered or "constraints" in lowered:
+            lines.append(
+                "- First principles: Identify the physical or resource constraints "
+                "that cannot be violated."
+            )
+
+        # Look for bottleneck-related queries
+        if "bottleneck" in lowered or "bottlenecks" in lowered:
+            lines.append(
+                "- First principles: The bottleneck is the narrowest point in the "
+                "system flow — widening it elsewhere has diminishing returns."
+            )
+
+        # Look for fundamental/physics queries
+        if "physics" in lowered or "fundamental" in lowered:
+            lines.append(
+                "- First principles: Strip away every layer of engineering convention "
+                "and ask: what does nature actually allow or demand?"
+            )
+
+        # Look for production/engineering optimization
+        if "engineering" in lowered or "production" in lowered or "loop" in lowered:
+            lines.append(
+                "- First principles: Reduce the problem to its essential variables, "
+                "then rebuild from the simplest functional subset."
+            )
+
+        # Look for multi-planetary / expansion queries
+        if "multi-planetary" in lowered or "expansion" in lowered:
+            lines.append(
+                "- First principles: The limiting factor is rarely technology — it is "
+                "energy, material, or the physics of the destination environment."
+            )
+
+        if not lines:
+            # Fallback: generic first-principles prompt
+            lines.append(
+                "- First principles: Go back to the most basic truths and reason up "
+                "from there, discarding every assumption that is not known to be true."
+            )
+
+        return "\n".join(lines)
+
+
 def toolkit_for(agent_id: str, memory: AgentMemory) -> tuple:
     """Return the tool tuple for ``agent_id``.
 
     Aegis-Worker is the Debugger. Vigil-Worker is the Developer.
+    Elon-Worker is the First Principles thinker.
     """
     if agent_id == "Aegis-Worker":
         return (DebugAssistant(),)
     if agent_id == "Vigil-Worker":
         return (DevAssistant(),)
+    if agent_id == "Elon-Worker":
+        return (FirstPrinciplesAssistant(),)
     return ()
