@@ -1,269 +1,195 @@
-"""The two tools the agents asked for. Each returns real data or nothing.
+"""Agent tools.
 
-- CodeAnalyzer (Aegis-Worker): detects syntax errors, unused imports,
-  undefined names, and lists functions/classes in Python code snippets
-  embedded in agent messages. Uses stdlib ast + tokenize only.
-- PatternFinder (Vigil-Worker): counts words and questions in messages this
-  agent has actually heard, from its own memory log.
-
-A tool returns None when it has nothing to add, so it never adds noise.
+Each tool is a small, self-contained capability assigned to an agent
+via ``toolkit_for``. Tools read from a message and return either a
+short report string or ``None`` if the message does not trigger them.
 """
 
 from __future__ import annotations
 
 import ast
-import builtins
-import csv
-import os
 import re
-import tokenize
-from collections import Counter
-from io import BytesIO
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from nexus_cove.agents.memory import AgentMemory
-
-REFERENCE_DIR_ENV = "NEXUS_COVE_REFERENCE_DIR"
-GEOLOGY_COLUMNS = ("material", "property", "value", "unit", "source")
-PATTERN_TRIGGERS = ("pattern", "repeat", "most common", "how often", "trend")
-MIN_MESSAGES_FOR_PATTERNS = 5
-STOPWORDS = frozenset(
-    "the and that with this what have from about would could should there their they your "
-    "them were will just like into when than then some more been very also over only does "
-    "know think being which where while would".split()
-)
-
-CODE_TRIGGERS = (
-    "debug", "traceback", "error", "exception", "syntax", "stack trace",
-    "TypeError", "ValueError", "NameError", "AttributeError"
-)
+if TYPE_CHECKING:
+    from nexus_cove.agents.memory import AgentMemory
 
 
-def reference_dir() -> Path:
-    return Path(os.environ.get(REFERENCE_DIR_ENV, "reference"))
+class DebugAssistant:
+    """Explains Python exceptions and tracebacks found in a message."""
 
+    name = "Debug Assistant"
 
-class GeologyAnalyzer:
-    name = "Geology Analyzer"
+    _TRIGGERS = (
+        "traceback", "trace back", "exception", "error", "failed",
+        "TypeError", "ValueError", "KeyError", "IndexError",
+        "AttributeError", "NameError", "ImportError", "RuntimeError",
+        "raise", "caught", "stack trace", "crash",
+    )
 
-    def __init__(self, path: Path) -> None:
-        self.path = path
-
-    def _rows(self) -> list[dict]:
-        if not self.path.is_file():
-            return []
-        with self.path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle)
-            missing = set(GEOLOGY_COLUMNS) - set(reader.fieldnames or [])
-            if missing:
-                raise ValueError(f"{self.path.name} is missing columns: {sorted(missing)}")
-            return [row for row in reader if (row.get("material") or "").strip()]
+    _HINTS = {
+        "TypeError": "Wrong type passed, or calling something on None. Check the arguments to the function that raised.",
+        "ValueError": "Right type, wrong value. Check the content — empty string, bad format, out of range.",
+        "KeyError": "Dict lookup failed. The key does not exist. Use .get() with a default, or check membership first.",
+        "IndexError": "List/tuple index out of range. Check len() before indexing.",
+        "AttributeError": "The object does not have that attribute. Usually None when it should not be — check what was returned.",
+        "NameError": "A name was used before it was assigned or imported. Check typos, missing imports, or scope.",
+        "ImportError": "A module or name could not be imported. Check it is installed, spelled correctly, and on the path.",
+        "ModuleNotFoundError": "The module is not installed or not on sys.path.",
+        "RuntimeError": "The code ran but hit a runtime condition. The exception message usually names the specific issue.",
+        "FileNotFoundError": "The file path is wrong or the file does not exist. Check the working directory.",
+        "RecursionError": "No reachable base case. Add one, or convert to iteration.",
+    }
 
     def run(self, text: str) -> str | None:
         lowered = text.lower()
-        hits = [row for row in self._rows() if row["material"].strip().lower() in lowered]
-        if not hits:
+        if not any(t.lower() in lowered for t in self._TRIGGERS):
             return None
-        lines = [
-            f"- {row['material']}: {row['property']} = {row['value']} {row['unit']} "
-            f"(source: {row['source']})"
-            for row in hits
-        ]
-        return "Geology Analyzer (from the reference file):\n" + "\n".join(lines)
+
+        exc_match = re.search(r"(\w+(?:Error|Exception))\s*:\s*(.+?)(?:\n|$)", text)
+        if not exc_match:
+            return (
+                "Debug Assistant: I see error keywords but no exception class. "
+                "Paste the full traceback ending in `ExceptionName: message` "
+                "so I can identify the type and the last frame."
+            )
+
+        exc_type = exc_match.group(1)
+        exc_msg = exc_match.group(2).strip()
+        hint = self._HINTS.get(
+            exc_type,
+            "Read the exception message and the last frame in the traceback — that is where the failure is.",
+        )
+
+        frames = re.findall(r'File "([^"]+)", line (\d+), in (\S+)', text)
+        last_frame = ""
+        if frames:
+            f, ln, fn = frames[-1]
+            last_frame = f"\n- Last frame: {f}:{ln} in {fn}()"
+
+        return (
+            f"Debug Assistant:\n"
+            f"- Exception: {exc_type}: {exc_msg}\n"
+            f"- Meaning: {hint}"
+            f"{last_frame}\n"
+            f"- Next: reproduce with the smallest possible input, then fix the cause, not the symptom."
+        )
 
 
-class CodeAnalyzer:
-    name = "Code Analyzer"
+class DevAssistant:
+    """Analyzes Python code structure, unused imports, missing docstrings, complexity."""
 
-    def __init__(self) -> None:
-        pass
+    name = "Dev Assistant"
 
-    def _extract_code_block(self, text: str) -> str | None:
-        """Extract Python code from fenced code blocks (```python ... ```)."""
-        # Match ```python ... ``` or ``` ... ``` with or without trailing newline
-        pattern = r'```(?:python)?\n(.*?)\n?```'
-        matches = re.findall(pattern, text, re.DOTALL)
-        if matches:
-            return matches[0]
-        return None
-
-    def _has_trigger(self, text: str) -> bool:
-        """Check if message contains code block or trigger keywords."""
-        if self._extract_code_block(text) is not None:
-            return True
-        lowered = text.lower()
-        return any(trigger.lower() in lowered for trigger in CODE_TRIGGERS)
-
-    def _get_defined_names(self, tree: ast.AST) -> set[str]:
-        """Get all names defined in the module (functions, classes, imports, assignments)."""
-        defined = set()
-
-        # Built-ins
-        defined.update(dir(builtins))
-
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                defined.add(node.name)
-                # Add function arguments
-                for arg in node.args.args:
-                    defined.add(arg.arg)
-                for arg in node.args.kwonlyargs:
-                    defined.add(arg.arg)
-                if node.args.vararg:
-                    defined.add(node.args.vararg.arg)
-                if node.args.kwarg:
-                    defined.add(node.args.kwarg.arg)
-            elif isinstance(node, ast.ClassDef):
-                defined.add(node.name)
-            elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    # Use the alias name (as imported) or the original name
-                    if alias.asname:
-                        defined.add(alias.asname)
-                    else:
-                        defined.add(alias.name.split('.')[0])
-            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
-                # Handle simple assignments
-                if isinstance(node, ast.Assign):
-                    for target in node.targets:
-                        if isinstance(target, ast.Name):
-                            defined.add(target.id)
-                elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-                    defined.add(node.target.id)
-
-        return defined
-
-    def _get_imported_names(self, tree: ast.AST) -> dict[str, str]:
-        """Get imported names: alias -> original name."""
-        imports = {}
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    name = alias.asname if alias.asname else alias.name.split('.')[0]
-                    imports[name] = alias.name
-        return imports
-
-    def _get_unused_imports(self, tree: ast.AST, imports: dict[str, str], defined_names: set[str]) -> list[str]:
-        """Find unused imports."""
-        used_names = set()
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                used_names.add(node.id)
-            elif isinstance(node, ast.Attribute):
-                # attribute access like module.function
-                pass  # We can't easily track these
-
-        unused = []
-        for alias_name, original_name in imports.items():
-            # Check if the alias is used anywhere
-            if alias_name not in used_names:
-                # Also check if any part of the import is used
-                # For "import foo.bar", check if "foo" is used
-                root_name = original_name.split('.')[0]
-                if root_name not in used_names:
-                    unused.append(alias_name)
-        return unused
-
-    def _get_undefined_names(self, tree: ast.AST, defined_names: set[str]) -> list[str]:
-        """Find potentially undefined names (best effort)."""
-        undefined = set()
-
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                if node.id not in defined_names:
-                    undefined.add(node.id)
-
-        return sorted(undefined)
-
-    def _get_functions_and_classes(self, tree: ast.AST) -> list[str]:
-        """Get list of functions and classes with line numbers."""
-        items = []
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                items.append(f"def {node.name} (line {node.lineno})")
-            elif isinstance(node, ast.ClassDef):
-                items.append(f"class {node.name} (line {node.lineno})")
-        return items
+    _TRIGGERS = (
+        "review", "refactor", "improve", "analyze", "check this code",
+        "unused import", "unused imports", "undefined", "linter",
+        "static analysis", "code quality", "complexity", "docstring",
+    )
 
     def run(self, text: str) -> str | None:
-        if not self._has_trigger(text):
-            return None
+        lowered = text.lower()
+        code = self._extract_code(text)
 
-        code = self._extract_code_block(text)
         if code is None:
-            code = text
+            if not any(t in lowered for t in self._TRIGGERS):
+                return None
+            return (
+                "Dev Assistant: no Python code block found. "
+                "Paste code between ```python and ``` so I can analyze it."
+            )
 
+        return self._analyze(code)
+
+    def _extract_code(self, text: str) -> str | None:
+        match = re.search(r"```(?:python)?\n(.*?)\n```", text, re.DOTALL)
+        return match.group(1) if match else None
+
+    def _analyze(self, code: str) -> str:
         try:
             tree = ast.parse(code)
         except SyntaxError as e:
-            return f"SyntaxError at line {e.lineno}, col {e.offset}: {e.msg}"
-        except Exception as e:
-            return f"CodeAnalyzer could not analyze this input: {e}"
-
-        try:
-            imports = self._get_imported_names(tree)
-            defined_names = self._get_defined_names(tree)
-            unused = self._get_unused_imports(tree, imports, defined_names)
-            undefined = self._get_undefined_names(tree, defined_names)
-            functions_classes = self._get_functions_and_classes(tree)
-
-            # Issues are only unused imports and undefined names
-            has_issues = bool(unused or undefined)
-
-            if not has_issues:
-                func_count = len([n for n in functions_classes if n.startswith('def')])
-                class_count = len([n for n in functions_classes if n.startswith('class')])
-                return f"Code parsed cleanly. {func_count} function(s), {class_count} class(es). No unused imports or obvious undefined names detected."
-
-            lines = []
-            if unused:
-                lines.append(f"- Unused imports: {', '.join(unused)}")
-            if undefined:
-                lines.append(f"- Potentially undefined names: {', '.join(undefined)}")
-            if functions_classes:
-                lines.append(f"- Defined: {', '.join(functions_classes)}")
-
-            return "Code Analyzer:\n" + "\n".join(lines)
-        except Exception as e:
-            return f"CodeAnalyzer could not analyze this input: {e}"
-
-
-class PatternFinder:
-    name = "Pattern Finder"
-
-    def __init__(self, memory: AgentMemory) -> None:
-        self._memory = memory
-
-    def run(self, text: str) -> str | None:
-        if not any(trigger in text.lower() for trigger in PATTERN_TRIGGERS):
-            return None
-        heard = [
-            entry["text"] for entry in self._memory.entries() if entry["direction"] == "received"
-        ]
-        if len(heard) < MIN_MESSAGES_FOR_PATTERNS:
             return (
-                f"Pattern Finder: {len(heard)} message(s) heard so far; it needs "
-                f"{MIN_MESSAGES_FOR_PATTERNS} before reporting patterns."
+                f"Dev Assistant:\n"
+                f"- SyntaxError at line {e.lineno}, col {e.offset}: {e.msg}\n"
+                f"- Fix the syntax first — nothing else can be analyzed until it parses."
             )
-        words = Counter(
-            word
-            for message in heard
-            for word in re.findall(r"[a-z']+", message.lower())
-            if len(word) >= 4 and word not in STOPWORDS
-        )
-        questions = sum(message.count("?") for message in heard)
-        top = ", ".join(f"{word} ({count})" for word, count in words.most_common(5)) or "none"
-        return (
-            f"Pattern Finder (from {len(heard)} messages heard): most repeated words: {top}. "
-            f"Questions heard: {questions}."
-        )
+
+        lines = ["Dev Assistant:"]
+        issues = 0
+
+        imported = {}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imported[alias.asname or alias.name.split(".")[0]] = node.lineno
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name != "*":
+                        imported[alias.asname or alias.name] = node.lineno
+
+        used_names = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)}
+        unused = [name for name in imported if name not in used_names]
+        if unused:
+            issues += 1
+            lines.append(f"- Unused imports: {', '.join(sorted(unused))}")
+
+        defined = []
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                has_doc = ast.get_docstring(node) is not None
+                defined.append(
+                    f"def {node.name} (line {node.lineno})"
+                    + ("" if has_doc else " [no docstring]")
+                )
+            elif isinstance(node, ast.ClassDef):
+                has_doc = ast.get_docstring(node) is not None
+                defined.append(
+                    f"class {node.name} (line {node.lineno})"
+                    + ("" if has_doc else " [no docstring]")
+                )
+        if defined:
+            lines.append(f"- Defined: {', '.join(defined)}")
+
+        missing_docs = sum(1 for d in defined if "[no docstring]" in d)
+        if missing_docs:
+            issues += 1
+            lines.append(
+                f"- Missing docstrings: {missing_docs} of {len(defined)} definitions"
+            )
+
+        complex_funcs = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                branches = sum(
+                    1
+                    for n in ast.walk(node)
+                    if isinstance(
+                        n, (ast.If, ast.For, ast.While, ast.Try, ast.With, ast.BoolOp)
+                    )
+                )
+                if branches >= 6:
+                    complex_funcs.append(f"{node.name} ({branches} branches)")
+        if complex_funcs:
+            issues += 1
+            lines.append(
+                f"- Complex functions (>=6 branches): {', '.join(complex_funcs)}"
+            )
+
+        if issues == 0:
+            lines.append(
+                "- No unused imports, no missing docstrings, no high complexity found."
+            )
+        return "\n".join(lines)
 
 
 def toolkit_for(agent_id: str, memory: AgentMemory) -> tuple:
-    """Each agent gets only the tool it asked for."""
+    """Return the tool tuple for ``agent_id``.
+
+    Aegis-Worker is the Debugger. Vigil-Worker is the Developer.
+    """
     if agent_id == "Aegis-Worker":
-        return (CodeAnalyzer(),)
+        return (DebugAssistant(),)
     if agent_id == "Vigil-Worker":
-        return (PatternFinder(memory),)
+        return (DevAssistant(),)
     return ()
