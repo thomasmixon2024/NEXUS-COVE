@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from nexus_cove.agents.memory import AgentMemory
-from nexus_cove.agents.tools import CodeAnalyzer, PatternFinder, toolkit_for
+from nexus_cove.agents.tools import DebugAssistant, DevAssistant, toolkit_for
 
 
 def test_memory_keeps_order_and_survives_reopening(tmp_path: Path) -> None:
@@ -20,106 +20,165 @@ def test_memory_rejects_unknown_direction(tmp_path: Path) -> None:
         AgentMemory(tmp_path / "m.jsonl").append("overheard", "x", "y")
 
 
-def test_code_analyzer_returns_none_without_trigger(tmp_path: Path) -> None:
-    analyzer = CodeAnalyzer()
-    assert analyzer.run("hello there") is None
-    assert analyzer.run("just a normal message") is None
+# DebugAssistant tests
+
+def test_debug_assistant_returns_none_for_plain_text(tmp_path: Path) -> None:
+    da = DebugAssistant()
+    assert da.run("hello there") is None
+    assert da.run("just a normal message") is None
 
 
-def test_code_analyzer_parses_clean_code(tmp_path: Path) -> None:
-    analyzer = CodeAnalyzer()
-    code = """
-def add(a, b):
-    return a + b
-
-class Calculator:
-    def multiply(self, x, y):
-        return x * y
+def test_debug_assistant_identifies_index_error(tmp_path: Path) -> None:
+    da = DebugAssistant()
+    text = """
+Traceback (most recent call last):
+  File "test.py", line 10, in <module>
+    x = lst[5]
+IndexError: list index out of range
 """
-    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    result = da.run(text)
     assert result is not None
-    assert "Code parsed cleanly" in result
-    assert "2 function(s)" in result
-    assert "1 class(es)" in result
-    assert "No unused imports or obvious undefined names detected" in result
+    assert "IndexError" in result
+    assert "list index out of range" in result
+    assert "IndexError" in result or "out of range" in result
 
 
-def test_code_analyzer_detects_syntax_error(tmp_path: Path) -> None:
-    analyzer = CodeAnalyzer()
-    code = """
-def broken(
-    return 1
+def test_debug_assistant_identifies_type_error(tmp_path: Path) -> None:
+    da = DebugAssistant()
+    text = """
+Traceback (most recent call last):
+  File "test.py", line 5, in <module>
+    result = None + 5
+TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'
 """
-    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    result = da.run(text)
     assert result is not None
-    assert result.startswith("SyntaxError at line")
-    assert "col" in result
+    assert "TypeError" in result
+    assert "NoneType" in result or "int" in result
+    assert "Wrong type" in result or "calling something on None" in result
 
 
-def test_code_analyzer_detects_unused_import(tmp_path: Path) -> None:
-    analyzer = CodeAnalyzer()
+def test_debug_assistant_extracts_last_frame(tmp_path: Path) -> None:
+    da = DebugAssistant()
+    text = """
+Traceback (most recent call last):
+  File "a.py", line 1, in <module>
+    foo()
+  File "b.py", line 5, in foo
+    bar()
+  File "c.py", line 10, in bar
+    raise ValueError: bad value
+ValueError: bad value
+"""
+    result = da.run(text)
+    assert result is not None
+    assert "ValueError" in result
+    assert "bad value" in result
+    assert "c.py" in result
+    assert "c.py:10" in result
+    assert "bar" in result
+
+
+# DevAssistant tests
+
+def test_dev_assistant_returns_none_for_plain_text(tmp_path: Path) -> None:
+    da = DevAssistant()
+    assert da.run("hello there") is None
+    assert da.run("just a normal message") is None
+
+
+def test_dev_assistant_finds_unused_imports(tmp_path: Path) -> None:
+    da = DevAssistant()
     code = """
+```python
 import os
 import sys
 
 def hello():
     print("hello")
+```
 """
-    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    result = da.run(code)
     assert result is not None
     assert "Unused imports" in result
-    # Either os or sys should be reported as unused
-    assert "os" in result or "sys" in result
+    assert "os" in result
+    assert "sys" in result
 
 
-def test_code_analyzer_detects_undefined_name(tmp_path: Path) -> None:
-    analyzer = CodeAnalyzer()
+def test_dev_assistant_reports_missing_docstrings(tmp_path: Path) -> None:
+    da = DevAssistant()
     code = """
+```python
 def foo():
-    return x + y
+    return 1
+
+class Bar:
+    pass
+```
 """
-    result = analyzer.run(f"debug this:\n```python\n{code}\n```")
+    result = da.run(code)
     assert result is not None
-    assert "Potentially undefined names" in result
-    assert "x" in result
-    assert "y" in result
+    assert "Missing docstrings" in result
+    assert "2 of 2 definitions" in result
 
 
-def test_pattern_finder_waits_for_enough_messages(tmp_path: Path) -> None:
-    memory = AgentMemory(tmp_path / "v.jsonl")
-    memory.append("received", "Thomas", "why do bees dance?")
-    result = PatternFinder(memory).run("what patterns do you see?")
-    assert result is not None and "needs 5" in result
-
-
-def test_pattern_finder_counts_words_and_questions_heard(tmp_path: Path) -> None:
-    memory = AgentMemory(tmp_path / "v.jsonl")
-    for text in [
-        "why do bees dance?",
-        "bees dance to share flowers?",
-        "why do stories repeat?",
-        "stories repeat shapes",
-        "music repeats patterns",
-    ]:
-        memory.append("received", "Thomas", text)
-    memory.append("sent", "Thomas", "sent text is not counted")
-    result = PatternFinder(memory).run("what is the most common pattern?")
+def test_dev_assistant_handles_syntax_error(tmp_path: Path) -> None:
+    da = DevAssistant()
+    code = """
+```python
+def broken(
+    return 1
+```
+"""
+    result = da.run(code)
     assert result is not None
-    assert "from 5 messages heard" in result
-    # "repeat" appears twice ("repeats" is a different word); three of five messages are questions.
-    assert "repeat (2)" in result
-    assert "Questions heard: 3." in result
+    assert "SyntaxError" in result
+    assert "Fix the syntax first" in result
 
 
-def test_pattern_finder_only_runs_on_its_trigger_words(tmp_path: Path) -> None:
-    memory = AgentMemory(tmp_path / "v.jsonl")
-    assert PatternFinder(memory).run("hello there") is None
+def test_dev_assistant_finds_complex_function(tmp_path: Path) -> None:
+    da = DevAssistant()
+    code = """
+```python
+def complex_func(x):
+    if x > 0:
+        for i in range(x):
+            if i % 2 == 0 and x > 10:
+                while i < 10:
+                    try:
+                        pass
+                    except:
+                        pass
+                    finally:
+                        pass
+    return x
+```
+"""
+    result = da.run(code)
+    assert result is not None
+    assert "Complex functions" in result
+    assert "complex_func" in result
 
 
-def test_each_agent_gets_only_its_tool(tmp_path: Path) -> None:
+# toolkit_for tests
+
+def test_toolkit_assigns_debug_to_aegis(tmp_path: Path) -> None:
     memory = AgentMemory(tmp_path / "m.jsonl")
-    aegis = toolkit_for("Aegis-Worker", memory)
-    vigil = toolkit_for("Vigil-Worker", memory)
-    assert [type(t).__name__ for t in aegis] == ["CodeAnalyzer"]
-    assert [type(t).__name__ for t in vigil] == ["PatternFinder"]
+    tools = toolkit_for("Aegis-Worker", memory)
+    assert len(tools) == 1
+    assert isinstance(tools[0], DebugAssistant)
+    assert tools[0].name == "Debug Assistant"
+
+
+def test_toolkit_assigns_dev_to_vigil(tmp_path: Path) -> None:
+    memory = AgentMemory(tmp_path / "m.jsonl")
+    tools = toolkit_for("Vigil-Worker", memory)
+    assert len(tools) == 1
+    assert isinstance(tools[0], DevAssistant)
+    assert tools[0].name == "Dev Assistant"
+
+
+def test_toolkit_returns_empty_for_others(tmp_path: Path) -> None:
+    memory = AgentMemory(tmp_path / "m.jsonl")
+    assert toolkit_for("Elon-Worker", memory) == ()
     assert toolkit_for("Some-Other-Agent", memory) == ()
