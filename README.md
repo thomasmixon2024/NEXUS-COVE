@@ -44,13 +44,9 @@ Built for the edge. No cloud dependencies. No API keys required. Your data never
 
 ---
 
-## 🚀 Quick Start (The 10-Second Setup)
+## 🚀 Quick Start
 
-**Don't worry, you don't need to be a DevOps wizard to try this.** We built a one-click script that does *everything* for you (starts Ollama, pulls the model, installs dependencies, and runs the test).
-
-🔗 **Repository**: [github.com/thomasmixon2024/NEXUS-COVE](https://github.com/thomasmixon2024/NEXUS-COVE)
-
-[![GitHub Repo](https://img.shields.io/badge/GitHub-thomasmixon2024%2FNEXUS--COVE-black?logo=github)](https://github.com/thomasmixon2024/NEXUS-COVE)
+**Repository**: [github.com/thomasmixon2024/NEXUS-COVE](https://github.com/thomasmixon2024/NEXUS-COVE)
 
 ```bash
 git clone https://github.com/thomasmixon2024/NEXUS-COVE.git
@@ -240,6 +236,8 @@ This starts:
 
 Then open **http://127.0.0.1:8080/web/index.html** in your browser.
 
+> **Note**: `cove-testbed.sh` now includes an Ollama preflight check. If Ollama isn't running, it will exit with a clear error: `❌ Ollama not running. In a Termux session run: ollama serve`
+
 ### Manual Process Launch (Advanced)
 
 **Terminal 1 — WebSocket Server**
@@ -318,7 +316,18 @@ NEXUS-COVE/
 ├── assets/                      # Logo, branding
 ├── cove-testbed.sh              # One-command full stack launch (server + manager + 3 workers + static)
 ├── cove-kill.sh                 # Kills all processes, frees ports
-├── run_demo.sh                  # Interactive demo installer (bash, 867 lines)
+├── run_demo.sh                  # Interactive demo installer (bash, ~866 lines)
+├── examples/
+│   └── agent-invocations/       # Example agent persona definitions (Architect, Debug, Docs-Ops, Validator)
+├── plugins/
+│   ├── nexus-cove-enhancement/  # Claude Code plugin (hooks + TypeScript types)
+│   └── README.md                # Plugin directory overview
+├── archive/                     # Superseded/consolidated directories
+│   ├── NexusCove_Skills_Plugins_Installers_v3/  # Skill/plugin installer scripts
+│   ├── pack_v3/                 # Packaged artifact (.claude/, src/)
+│   ├── reference/               # Former reference data (geology.csv)
+│   ├── CODE_OF_CONDUCT.md       # Archived (solo project)
+│   └── SECURITY.md              # Archived (solo project)
 ├── docs/
 │   ├── architecture/overview.md     # 7-layer architecture
 │   ├── guides/
