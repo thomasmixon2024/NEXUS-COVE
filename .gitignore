@@ -101,3 +101,9 @@ nc.zip
 .patch-backups/
 *.tar.gz
 .pids/
+
+# NEXUS-COVE runtime artifacts
+.venv-termux/
+data/
+Diagnostics/
+*.code-workspace
