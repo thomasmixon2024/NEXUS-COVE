@@ -35,7 +35,7 @@ Built for the edge. No cloud dependencies. No API keys required. Your data never
 | **Safety & Control** | Dialogue Guard (10 agent→agent replies/5 min, human resets), global + per-agent pause, human-only stop network |
 | **Local LLM** | Ollama integration (loopback-only), `ModelUnavailable` exception (no fake text), 1200-char sentence-boundary limit |
 | **Memory & Knowledge** | JSONL memory with highlights/checkpoints, per-agent knowledge folders, `SHARE:` directive for voluntary sharing |
-| **Tools** | Geology Analyzer (Aegis - reads CSV), Pattern Finder (Vigil - analyzes memory) — real data only |
+| **Tools** | Debug Assistant (Aegis - traceback/exception parser), Dev Assistant (Vigil - AST code analysis: unused imports, missing docstrings, complexity) |
 | **Conversation Starter** | Periodic questions to peers from model or personality openings |
 | **Observability** | Structured JSONL chat log (downloadable as Markdown), runtime metrics, structured logging |
 | **Speech Synthesis** | Edge Natural voices per agent, per-sentence emotion modulation (pitch/rate/volume) |
