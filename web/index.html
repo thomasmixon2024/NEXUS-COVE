@@ -169,10 +169,12 @@
         let onlinePaused = {};
         let stopRequested = false;
         const AGENT_VOICES = {
-            "Aegis-Worker": { voice: "Microsoft David", pitch: 1.0, rate: 0.95, expressive: 0.6 },
-            "Vigil-Worker": { voice: "Samantha", pitch: 1.0, rate: 1.05, expressive: 1.5 },
-            "Elon-Worker": { voice: "Microsoft Mark", pitch: 0.7, rate: 0.85, expressive: 0.2 },
-            "Nexus-Manager": { voice: "Google UK English Female", pitch: 1.0, rate: 1.0, expressive: 0.8 },
+            // Use language/gender preferences for cross-platform compatibility
+            // Each agent gets distinct lang + gender combo so browser picks different voices
+            "Aegis-Worker": { lang: "en-US", gender: "male", pitch: 1.0, rate: 0.95, expressive: 0.6 },
+            "Vigil-Worker": { lang: "en-US", gender: "female", pitch: 1.0, rate: 1.05, expressive: 1.5 },
+            "Elon-Worker": { lang: "en-US", gender: "male", pitch: 0.7, rate: 0.85, expressive: 0.2 },
+            "Nexus-Manager": { lang: "en-GB", gender: "female", pitch: 1.0, rate: 1.0, expressive: 0.8 },
         };
         let speechOn = false;
         let chatUnsaved = false;
@@ -304,22 +306,36 @@
         function pickVoice(cfg) {
             if (!window.speechSynthesis) return null;
             const voices = speechSynthesis.getVoices();
-            const natural = voices.filter(v => /natural/i.test(v.name));
-            const target = cfg.voice;
-            if (!target) return null;
-            // Try exact match first in natural voices
-            let hit = natural.find(v => v.name === target);
+            if (voices.length === 0) return null;
+
+            const natural = voices.filter(v => /natural|neural|wave/i.test(v.name));
+            const targetLang = cfg.lang || 'en-US';
+            const targetGender = cfg.gender;
+
+            // Try natural voices first with matching language
+            let hit = natural.find(v => v.lang.startsWith(targetLang.split('-')[0]));
+            if (hit && (!targetGender || (targetGender === 'male' && !/female/i.test(v.name)) || (targetGender === 'female' && /female/i.test(v.name)))) {
+                return hit;
+            }
+
+            // Try natural voices with just language match
+            hit = natural.find(v => v.lang.startsWith(targetLang.split('-')[0]));
             if (hit) return hit;
-            // Try partial match in natural voices
-            hit = natural.find(v => v.name.includes(target));
+
+            // Try all voices with language match and gender preference
+            hit = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]) &&
+                (!targetGender || (targetGender === 'male' && !/female/i.test(v.name)) || (targetGender === 'female' && /female/i.test(v.name))));
             if (hit) return hit;
-            // Try exact match in all voices
-            hit = voices.find(v => v.name === target);
+
+            // Try all voices with just language match
+            hit = voices.find(v => v.lang.startsWith(targetLang.split('-')[0]));
             if (hit) return hit;
-            // Try partial match in all voices
-            hit = voices.find(v => v.name.includes(target));
-            if (hit) return hit;
-            return null;
+
+            // Fallback to any natural voice
+            if (natural.length > 0) return natural[0];
+
+            // Last resort: first available voice
+            return voices[0];
         }
 
         function reportVoices() {
