@@ -169,11 +169,11 @@
         let onlinePaused = {};
         let stopRequested = false;
         const AGENT_VOICES = {
-            // Use language/gender preferences for cross-platform compatibility
-            // Each agent gets distinct lang + gender combo so browser picks different voices
+            // Deterministic voice config: lang + gender preference + tuning
+            // Voices are assigned once when SpeechSynthesis voices load, then cached
             "Aegis-Worker": { lang: "en-US", gender: "male", pitch: 1.0, rate: 0.95, expressive: 0.6 },
             "Vigil-Worker": { lang: "en-US", gender: "female", pitch: 1.0, rate: 1.05, expressive: 1.5 },
-            "Elon-Worker": { lang: "en-US", gender: "male", pitch: 0.7, rate: 0.85, expressive: 0.2 },
+            "Elon-Worker": { lang: "en-US", gender: "male", pitch: 0.65, rate: 0.8, expressive: 0.15 },
             "Nexus-Manager": { lang: "en-GB", gender: "female", pitch: 1.0, rate: 1.0, expressive: 0.8 },
         };
         let speechOn = false;
@@ -303,7 +303,103 @@
             appendChatMessage(ev.sender, ev.message, 'agent_feed', ev.recipient);
         }
 
+        // Voice assignment cache - assigned once when voices load, never changes
+        const VOICE_CACHE = new Map();
+
+        function assignVoices() {
+            if (!window.speechSynthesis) return;
+            const voices = speechSynthesis.getVoices();
+            if (voices.length === 0) return;
+
+            // Already assigned? Don't reassign
+            if (VOICE_CACHE.size >= Object.keys(AGENT_VOICES).length) return;
+
+            const natural = voices.filter(v => /natural|neural|wave/i.test(v.name));
+            const availableVoices = natural.length > 0 ? natural : voices;
+
+            // Build priority-ordered voice lists for each agent
+            const agentPrefs = Object.entries(AGENT_VOICES).map(([name, cfg]) => ({
+                name,
+                lang: cfg.lang || 'en-US',
+                gender: cfg.gender,
+                pitch: cfg.pitch,
+                rate: cfg.rate,
+                expressive: cfg.expressive,
+            }));
+
+            // Sort agents by preference specificity (en-GB before en-US, female before male for diversity)
+            agentPrefs.sort((a, b) => {
+                const aSpecific = (a.lang === 'en-GB' ? 2 : 1) + (a.gender === 'female' ? 1 : 0);
+                const bSpecific = (b.lang === 'en-GB' ? 2 : 1) + (b.gender === 'female' ? 1 : 0);
+                return bSpecific - aSpecific;
+            });
+
+            const usedVoiceIndices = new Set();
+
+            for (const agent of agentPrefs) {
+                // Find best matching unused voice
+                let bestIdx = -1;
+                let bestScore = -1;
+
+                for (let i = 0; i < availableVoices.length; i++) {
+                    if (usedVoiceIndices.has(i)) continue;
+                    const v = availableVoices[i];
+                    let score = 0;
+
+                    // Language match
+                    if (v.lang.startsWith(agent.lang.split('-')[0])) score += 10;
+
+                    // Gender preference match (heuristic based on voice name)
+                    if (agent.gender) {
+                        const isFemaleVoice = /female/i.test(v.name);
+                        if ((agent.gender === 'female' && isFemaleVoice) ||
+                            (agent.gender === 'male' && !isFemaleVoice)) {
+                            score += 5;
+                        }
+                    }
+
+                    // Prefer natural/neural voices
+                    if (/natural|neural|wave/i.test(v.name)) score += 3;
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestIdx = i;
+                    }
+                }
+
+                // Fallback: first unused voice
+                if (bestIdx === -1) {
+                    for (let i = 0; i < availableVoices.length; i++) {
+                        if (!usedVoiceIndices.has(i)) {
+                            bestIdx = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (bestIdx !== -1) {
+                    VOICE_CACHE.set(agent.name, {
+                        voice: availableVoices[bestIdx],
+                        pitch: agent.pitch,
+                        rate: agent.rate,
+                        expressive: agent.expressive,
+                    });
+                    usedVoiceIndices.add(bestIdx);
+                }
+            }
+        }
+
+        function getAgentVoice(agentName) {
+            // Ensure voices are assigned
+            if (VOICE_CACHE.size === 0 && window.speechSynthesis) {
+                assignVoices();
+            }
+            return VOICE_CACHE.get(agentName) || null;
+        }
+
         function pickVoice(cfg) {
+            // This is kept for backward compatibility but now uses cache
+            // The actual voice is retrieved via getAgentVoice in speakAgent
             if (!window.speechSynthesis) return null;
             const voices = speechSynthesis.getVoices();
             if (voices.length === 0) return null;
@@ -343,9 +439,10 @@
                 appendSystemMessage('Speech voices are still loading. Turn the speaker off and on again in a moment.');
                 return;
             }
+            assignVoices();
             for (const name of Object.keys(AGENT_VOICES)) {
-                const voice = pickVoice(AGENT_VOICES[name]);
-                const label = voice ? voice.name : 'basic voice (no Natural voice found)';
+                const cached = getAgentVoice(name);
+                const label = cached ? cached.voice.name : 'basic voice (no match found)';
                 appendSystemMessage(`${name} voice: ${label}`);
             }
         }
@@ -392,7 +489,9 @@
                 text = text.replace(/[:;—]/g, '... ');
                 text = text.replace(/\b(first principles|physics|bottleneck|orders of magnitude|fundamentally)\b/gi, '... $1');
             }
-            const voice = pickVoice(cfg);
+            // Use cached voice assignment for deterministic voice per agent
+            const cached = getAgentVoice(sender);
+            const voice = cached ? cached.voice : null;
             for (const sentence of splitSentences(text)) {
                 const expression = expressionFor(sentence, cfg);
                 const utterance = new SpeechSynthesisUtterance(sentence);
