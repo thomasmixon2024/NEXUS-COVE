@@ -180,5 +180,5 @@ def test_toolkit_assigns_dev_to_vigil(tmp_path: Path) -> None:
 
 def test_toolkit_returns_empty_for_others(tmp_path: Path) -> None:
     memory = AgentMemory(tmp_path / "m.jsonl")
-    assert toolkit_for("Elon-Worker", memory) == ()
     assert toolkit_for("Some-Other-Agent", memory) == ()
+    assert toolkit_for("Nexus-Manager", memory) == ()

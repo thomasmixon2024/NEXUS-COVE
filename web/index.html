@@ -169,10 +169,10 @@
         let onlinePaused = {};
         let stopRequested = false;
         const AGENT_VOICES = {
-            "Aegis-Worker": { prefer: ["Davis", "Andrew", "David", "Mark", "Microsoft David"], pitch: 1.0, rate: 0.95, expressive: 0.6 },
-            "Vigil-Worker": { prefer: ["Aria", "Jenny", "Emma", "Michelle", "Samantha", "Victoria"], pitch: 1.0, rate: 1.05, expressive: 1.5 },
-            "Elon-Worker": { prefer: ["Christopher", "Guy", "Brian", "Roger", "Microsoft Mark", "Alex"], pitch: 0.82, rate: 0.92, expressive: 0.35 },
-            "Nexus-Manager": { prefer: ["Steffan", "Eric", "Fred", "Alex", "Microsoft Zira", "Google UK English Female"], pitch: 1.0, rate: 1.0, expressive: 0.8 },
+            "Aegis-Worker": { voice: "Microsoft David", pitch: 1.0, rate: 0.95, expressive: 0.6 },
+            "Vigil-Worker": { voice: "Samantha", pitch: 1.0, rate: 1.05, expressive: 1.5 },
+            "Elon-Worker": { voice: "Microsoft Mark", pitch: 0.82, rate: 0.92, expressive: 0.35 },
+            "Nexus-Manager": { voice: "Google UK English Female", pitch: 1.0, rate: 1.0, expressive: 0.8 },
         };
         let speechOn = false;
         let chatUnsaved = false;
@@ -297,21 +297,28 @@
         }
 
         function onFeedEvent(ev) {
-            appendChatMessage(ev.sender, ev.message, 'direct', ev.recipient);
+            // Agent-to-agent communications: show in unified feed with clear label
+            appendChatMessage(ev.sender, ev.message, 'agent_feed', ev.recipient);
         }
 
         function pickVoice(cfg) {
             if (!window.speechSynthesis) return null;
             const voices = speechSynthesis.getVoices();
             const natural = voices.filter(v => /natural/i.test(v.name));
-            for (const name of cfg.prefer) {
-                const hit = natural.find(v => v.name.includes(name));
-                if (hit) return hit;
-            }
-            for (const name of cfg.prefer) {
-                const hit = voices.find(v => v.name.includes(name));
-                if (hit) return hit;
-            }
+            const target = cfg.voice;
+            if (!target) return null;
+            // Try exact match first in natural voices
+            let hit = natural.find(v => v.name === target);
+            if (hit) return hit;
+            // Try partial match in natural voices
+            hit = natural.find(v => v.name.includes(target));
+            if (hit) return hit;
+            // Try exact match in all voices
+            hit = voices.find(v => v.name === target);
+            if (hit) return hit;
+            // Try partial match in all voices
+            hit = voices.find(v => v.name.includes(target));
+            if (hit) return hit;
             return null;
         }
 
@@ -480,10 +487,35 @@
             const isSelf = sender === myUsername;
             const from = isSelf ? 'You' : `@${escapeHtml(sender)}`;
             const to = recipient ? `@${escapeHtml(recipient)}` : 'everyone';
-            const direct = recipient !== null;
+
+            let labelColor = 'text-slate-400';
+            let labelPrefix = '';
+            let bgClass = 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none';
+
+            if (isSelf) {
+                bgClass = 'bg-indigo-600 text-white rounded-tr-none';
+            }
+
+            switch (mode) {
+                case 'broadcast':
+                    labelColor = 'text-sky-400';
+                    labelPrefix = '📢 ';
+                    break;
+                case 'direct':
+                    labelColor = 'text-emerald-400';
+                    labelPrefix = '💬 ';
+                    break;
+                case 'agent_feed':
+                    labelColor = 'text-amber-400';
+                    labelPrefix = '🤖 ';
+                    break;
+                default:
+                    labelColor = 'text-slate-400';
+            }
+
             const msgDiv = document.createElement('div');
             msgDiv.className = `flex flex-col ${isSelf ? 'items-end' : 'items-start'}`;
-            msgDiv.innerHTML = `<span class="text-[11px] ${direct ? 'text-emerald-400' : 'text-slate-400'} mb-0.5 px-1">${from} to ${to}</span><div class="max-w-[80%] rounded-xl px-3.5 py-2 text-sm ${isSelf ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'}">${escapeHtml(message)}</div>`;
+            msgDiv.innerHTML = `<span class="text-[11px] ${labelColor} mb-0.5 px-1">${labelPrefix}${from} to ${to}</span><div class="max-w-[80%] rounded-xl px-3.5 py-2 text-sm ${bgClass}">${escapeHtml(message)}</div>`;
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }

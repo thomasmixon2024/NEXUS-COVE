@@ -40,7 +40,7 @@ class OllamaReplier:
         model: str,
         system_prompt: str,
         base_url: str = DEFAULT_BASE_URL,
-        timeout: float = 120.0,
+        timeout: float = 300.0,
     ) -> None:
         host = urlsplit(base_url).hostname
         if host not in LOOPBACK_HOSTS:

@@ -478,6 +478,10 @@ def main() -> None:
     )
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11434")
     parser.add_argument(
+        "--ollama-timeout", type=float, default=300.0,
+        help="Ollama request timeout in seconds (default: 300)"
+    )
+    parser.add_argument(
         "--personality",
         default=None,
         help="Personality name or .toml path. Default: the bundled file for --name.",
@@ -510,7 +514,8 @@ def main() -> None:
         build_system_prompt(personality) if personality else default_system_prompt(args.name)
     )
     replier = (
-        OllamaReplier(args.model, system_prompt, base_url=args.ollama_url) if args.model else None
+        OllamaReplier(args.model, system_prompt, base_url=args.ollama_url, timeout=args.ollama_timeout)
+        if args.model else None
     )
     starter = (
         ConversationStarter(
