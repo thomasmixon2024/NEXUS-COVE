@@ -16,7 +16,7 @@ REQUIRED_TEXT = ("name", "temperament", "style", "mentor")
 REQUIRED_LISTS = ("interests", "opening_questions")
 
 
-@dataclass(frozen=True)
+@dataclass(slots=True, frozen=True)
 class Personality:
     name: str
     temperament: str

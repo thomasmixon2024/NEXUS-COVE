@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Local multi-agent orchestration framework with explicit task, transport, storage, and observability boundaries."
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-license = { text = "All Rights Reserved" }
+license = { text = "MIT" }
 dependencies = ["websockets>=16,<17"]
 
 [project.optional-dependencies]

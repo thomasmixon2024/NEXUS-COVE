@@ -28,16 +28,38 @@ class DebugAssistant:
     )
 
     _HINTS = {
-        "TypeError": "Wrong type passed, or calling something on None. Check the arguments to the function that raised.",
-        "ValueError": "Right type, wrong value. Check the content — empty string, bad format, out of range.",
-        "KeyError": "Dict lookup failed. The key does not exist. Use .get() with a default, or check membership first.",
+        "TypeError": (
+            "Wrong type passed, or calling something on None. "
+            "Check the arguments to the function that raised."
+        ),
+        "ValueError": (
+            "Right type, wrong value. Check the content — empty string, bad format, out of range."
+        ),
+        "KeyError": (
+            "Dict lookup failed. The key does not exist. "
+            "Use .get() with a default, or check membership first."
+        ),
         "IndexError": "List/tuple index out of range. Check len() before indexing.",
-        "AttributeError": "The object does not have that attribute. Usually None when it should not be — check what was returned.",
-        "NameError": "A name was used before it was assigned or imported. Check typos, missing imports, or scope.",
-        "ImportError": "A module or name could not be imported. Check it is installed, spelled correctly, and on the path.",
+        "AttributeError": (
+            "The object does not have that attribute. "
+            "Usually None when it should not be — check what was returned."
+        ),
+        "NameError": (
+            "A name was used before it was assigned or imported. "
+            "Check typos, missing imports, or scope."
+        ),
+        "ImportError": (
+            "A module or name could not be imported. "
+            "Check it is installed, spelled correctly, and on the path."
+        ),
         "ModuleNotFoundError": "The module is not installed or not on sys.path.",
-        "RuntimeError": "The code ran but hit a runtime condition. The exception message usually names the specific issue.",
-        "FileNotFoundError": "The file path is wrong or the file does not exist. Check the working directory.",
+        "RuntimeError": (
+            "The code ran but hit a runtime condition. "
+            "The exception message usually names the specific issue."
+        ),
+        "FileNotFoundError": (
+            "The file path is wrong or the file does not exist. Check the working directory."
+        ),
         "RecursionError": "No reachable base case. Add one, or convert to iteration.",
     }
 
@@ -58,7 +80,8 @@ class DebugAssistant:
         exc_msg = exc_match.group(2).strip()
         hint = self._HINTS.get(
             exc_type,
-            "Read the exception message and the last frame in the traceback — that is where the failure is.",
+            "Read the exception message and the last frame in the traceback — "
+            "that is where the failure is.",
         )
 
         frames = re.findall(r'File "([^"]+)", line (\d+), in (\S+)', text)
@@ -72,7 +95,8 @@ class DebugAssistant:
             f"- Exception: {exc_type}: {exc_msg}\n"
             f"- Meaning: {hint}"
             f"{last_frame}\n"
-            f"- Next: reproduce with the smallest possible input, then fix the cause, not the symptom."
+            "- Next: reproduce with the smallest possible input, "
+            "then fix the cause, not the symptom."
         )
 
 

@@ -34,7 +34,134 @@ NEXUS COVE is a local multi-agent orchestration framework that runs entirely on-
 
 **Core Philosophy**: *"Zero cloud. Zero API keys. Absolute edge."* — Built to run anywhere Python runs, including Android via Termux.
 
-**Benchmark**: Tested live on Android ARM64 via Termux with `qwen2.5:0.5b` (Q4_K_M) — **1.57 seconds latency (warm)**.
+## Environment
+
+- **Shell**: Ubuntu LTS inside Termux on Android (proot-distro)
+- **OS**: Linux 6.17.0-PRoot-Distro running under Termux
+- **Architecture**: ARM64 (Android ARM64)
+- **SD Card**: Mounted at `/sdcard` (bind mount from `/storage/emulated/0`) — **FULL READ/WRITE ACCESS** to all Android files, media, downloads, documents
+- **Preflight Project**: Accessible at `/sdcard/Documents/Preflight` — a separate git repository with its own CLAUDE.md, assets, automation, data, and docs
+- **Local Storage**: All data persists in `/root/` — no cloud, no API keys
+- **Network**: Localhost-only — WebSocket on 127.0.0.1:8765, static HTTP on 127.0.0.1:8080
+- **Git Remote**: `origin` at `git@github.com:thomasmixon2024/NEXUS-COVE.git` (fetch & push)
+- **Trusted Repo**: `/root/NEXUS-COVE` local repository with remote `origin` tracking `origin/main`
+- **Key Services**: Ollama (local LLM backend, loopback), WebSocket transport (ws://127.0.0.1:8765), static HTTP server (http://127.0.0.1:8080)
+- **Sensitive Data**: Any file holding personal, confidential, or regulated material must be handled per the [named+specifics] bar
+
+## Project Structure and Optimization
+
+### Source File Summary (38 Python files in `src/nexus_cove/`)
+
+**Largest files (performance-critical):**
+- `agents/worker.py` (21KB) — Main worker execution loop, task dispatch, backend integration
+- `transport/websocket/server.py` (19KB) — WebSocket server, message routing, broadcast logic
+- `agents/memory.py` (12KB) — Per-agent JSONL message log with highlights and checkpoints
+- `agents/tools.py` (11KB) — Tool assistants (Debug, Dev, First Principles) triggered by keywords
+- `orchestration/manager.py` (10KB) — Manager WebSocket connection, task scheduling, result handling
+- `storage/sqlite.py` (8KB) — SQLite persistence with migration system and VACUUM support
+
+**Key modules by domain:**
+- `core/models.py` (1.7KB) — Dataclasses: Task, TaskResult, Agent (slots=True for memory efficiency)
+- `core/protocols.py` (1.7KB) — Message encoding/decoding with protocol versioning
+- `core/dialogue.py` (2.6KB) — Turn-limit guard for agent replies (10/5min window)
+- `core/exceptions.py` (277B) — Custom exception hierarchy (CoveError, ProtocolError, AgentUnavailable)
+- `orchestration/scheduler.py` (813B) — Least-load capable agent selection
+- `orchestration/task_registry.py` (1KB) — In-memory task tracking dictionary
+- `orchestration/registry.py` (880B) — Agent registration and status lookup
+- `observability/metrics.py` (1.2KB) — Runtime metrics snapshot (submitted/completed/failed)
+- `observability/logging.py` (380B) — JSON log formatter with task_id/agent_id/event fields
+- `storage/interface.py` (340B) — Storage protocol definition
+- `utils/jsonl.py` (1.8KB) — Stream-oriented JSONL readers/writers with corrupt-line skipping
+- `utils/reconnection.py` (974B) — Exponential backoff with jitter for WebSocket reconnection
+- `agents/pause.py` (1.6KB) — Global and per-agent pause flag system
+- `agents/knowledge.py` (2.3KB) — Per-agent knowledge store with SHARE prefix parsing
+- `agents/personality.py` (2.3KB) — Personality TOML loader and system prompt builder
+- `agents/backends/deterministic_backend.py` (1KB) — Test-only task execution backend
+- `agents/backends/base.py` (277B) — AgentBackend protocol definition
+- `agents/starter.py` (2.9KB) — Periodic conversation starter with model fallback
+- `agents/tools.py` (11KB) — Tool assistants for different agent personalities
+
+### Performance Optimization Opportunities
+
+1. **SQLite Performance:**
+   - Add `PRAGMA journal_mode=WAL` for better concurrent read performance
+   - Set `PRAGMA synchronous=NORMAL` (reduces fsync overhead at small safety cost)
+   - Configure `PRAGMA cache_size=-64` (64MB cache for frequently accessed data)
+   - Call `vacuum()` after heavy write workloads to minimize database file size
+
+2. **JSON Serialization:**
+   - Consider using `orjson` or `ujson` for faster, smaller JSON serialization
+   - Current `json.dumps` with `ensure_ascii=False` is adequate but not optimized
+   - The `_json_default` in protocols.py could be optimized for the specific dataclass types used
+
+3. **Agent Memory System:**
+   - Message log grows indefinitely - consider automatic rotation after N entries
+   - `_count()` reads entire JSONL file each time - could be cached or use seek-based counting
+   - Highlights system preserves only 50 entries (MAX_HIGHLIGHTS) - verify this is optimal
+   - Session journal trimmed to 50 entries (MAX_SESSION_CHECKPOINTS) - could be configurable
+
+4. **WebSocket Broadcast:**
+   - Current `_send_to_all` sends to ALL clients regardless of kind
+   - Could filter by client kind to reduce unnecessary messages
+   - Feed history limited to 200 entries (FEED_HISTORY_SIZE) - adequate for chat log
+
+5. **Knowledge Store Loading:**
+   - `KnowledgeStore.items()` loads ALL knowledge files into memory on init
+   - For large knowledge bases, consider lazy loading or memory-mapped files
+   - MAX_ITEMS_IN_PROMPT=4 and MAX_ITEM_CHARS=1500 already limit prompt size
+
+6. **Tool Trigger Optimization:**
+   - Tools use regex matching on lowercased text - generally fast but could be optimized
+   - Debug Assistant and Dev Assistant triggers are keyword-based - no major bottlenecks
+
+### File Size Reduction Opportunities
+
+1. **Remove Redundant Code:**
+   - Several `__init__.py` files are empty - verify if they're needed or can be removed
+   - Remove any debug code or unnecessary comments
+   - Consolidate similar utility functions
+
+2. **JSON Optimization:**
+   - Remove `indent=2` from non-debug JSON writes (memory.py uses `json.dump(data, handle, indent=2)`)
+   - The `_write_json_atomic` function uses indent=2 - consider making this configurable
+   - JSONL files don't need indentation - ensure `json.dumps(record, ensure_ascii=False) + "\n"` is used (already the case)
+
+3. **Constant Consolidation:**
+   - Several constants are defined in multiple files or could be consolidated
+   - MAX_REPLY_CHARS=1200, MAX_REPLY_TOKENS=320 in ollama_replier.py
+   - DEFAULT_MAX_AGENT_TURNS=10, DEFAULT_REOPEN_AFTER_SECONDS=300.0 in dialogue.py
+   - CHECKPOINT_EVERY=100, MAX_HIGHLIGHTS=50, MAX_SESSION_CHECKPOINTS=50 in memory.py
+
+4. **Import Optimization:**
+   - Verify all imports are actually used (some files may have unused imports)
+   - Consider lazy imports for optional modules (already done in worker.py with TYPE_CHECKING)
+
+5. **Dataclass Efficiency:**
+   - Most dataclasses already use `slots=True` for memory efficiency
+   - Verify all public dataclasses use slots=True
+   - Consider `__slots__` on classes that don't currently have it
+
+### Simplification Opportunities
+
+1. **Reduce Duplicate Logic:**
+   - Pause logic exists in both `pause.py` (global/per-agent flags) and agent-level checks
+   - Verify there's no redundant pause checking across the codebase
+
+2. **Consolidate Configuration:**
+   - Runtime configuration in `settings.json` could be harmonized with project-level config
+   - Some constants are defined both in code and could come from config
+
+3. **Test Coverage Review:**
+   - 40 test files exist - verify all are necessary and not duplicative
+   - Integration and e2e tests should cover genuine boundaries, not trivial cases
+
+### Termux/Ubuntu on Android Constraints
+
+- All processing must be efficient on ARM64 architecture
+- Limited RAM means minimizing in-memory data footprints
+- SD card storage is slower than internal storage - optimize database reads/writes
+- No cloud API keys - all optimization must be local/offline
+- Network is localhost-only - transport layer can assume loopback conditions
 
 This repository is the canonical source of truth. Git history is the mechanism for versioning; duplicate `backup`, `final`, `phase-ready`, or `old` source trees are prohibited.
 
@@ -78,8 +205,8 @@ This repository is the canonical source of truth. Git history is the mechanism f
 │  • Personalities        │  │  • Tasks table          │
 │  • Memory (JSONL)       │  │  • TaskResults table    │
 │  • Knowledge (per-agent)│  │  • Schema migrations    │
-│  • Tools (Geology,      │  │  • Summary stats        │
-│    Pattern)             │  │                         │
+│  • Tools (Debug, Dev,      │  │  • Summary stats        │
+│    First Principles)             │  │                         │
 │  • Ollama Replier       │  └─────────────────────────┘
 │  • Conversation Starter │
 │  • Pause/Resume/Stop    │

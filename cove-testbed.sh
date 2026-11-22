@@ -123,7 +123,7 @@ wait_for_log manager "connected" 5 || {
 if [ -n "$SELECTED_AGENT" ]; then
     WORKERS=("$SELECTED_AGENT")
 else
-    WORKERS=(Aegis-Worker Elon-Worker Vigil-Worker)
+    WORKERS=(Aegis-Worker Elon-Worker Vigil-Worker General-Questions-Worker)
 fi
 
 for w in "${WORKERS[@]}"; do

@@ -9,7 +9,7 @@
   [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
   [![Ollama](https://img.shields.io/badge/Backend-Ollama-black.svg)](https://ollama.com)
   [![Termux Ready](https://img.shields.io/badge/Android-Termux-green.svg)](https://termux.dev)
-  [![License: All Rights Reserved](https://img.shields.io/badge/License-All%20Rights%20Reserved-yellow.svg)](LICENSE)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
   [![Version: 0.2.0](https://img.shields.io/badge/Version-0.2.0%20%22Cove%20Horizon%22-orange.svg)](CHANGELOG.md)
 </div>
 
@@ -29,7 +29,7 @@ Built for the edge. No cloud dependencies. No API keys required. Your data never
 
 | Category | Features |
 |----------|----------|
-| **Agent Ecosystem** | 3 bundled personalities (Aegis, Vigil, Elon) loaded from TOML; per-agent memory, knowledge folders, and tools |
+| **Agent Ecosystem** | 4 bundled personalities (Aegis, Vigil, Elon, General) loaded from TOML; per-agent memory, knowledge folders, and tools |
 | **Orchestration** | Task registry (CREATED→QUEUED→ASSIGNED→RUNNING→COMPLETED), capability-load scheduler, agent registry |
 | **Communication** | WebSocket protocol v1, group chat (Nexus Chat), direct messages, agent feed (last 200 messages replayed) |
 | **Safety & Control** | Dialogue Guard (10 agent→agent replies/5 min, human resets), global + per-agent pause, human-only stop network |
@@ -202,8 +202,8 @@ Re-running `./run_demo.sh` is safe:
 │  • Personalities        │  │  • Tasks table          │
 │  • Memory (JSONL)       │  │  • TaskResults table    │
 │  • Knowledge (per-agent)│  │  • Schema migrations    │
-│  • Tools (Geology,      │  │  • Summary stats        │
-│    Pattern)             │  │                         │
+│  • Tools (Debug, Dev,   │  │  • Summary stats        │
+│    First Principles)    │  │                         │
 │  • Ollama Replier       │  └─────────────────────────┘
 │  • Conversation Starter │
 │  • Pause/Resume/Stop    │
@@ -254,13 +254,13 @@ cd ~/NEXUS-COVE
 ```
 Owns the task DB and routes messages. Leave running.
 
-**Terminal 3 — Worker "Aegis-Worker" (responder, geology tool)**
+**Terminal 3 — Worker "Aegis-Worker" (Debug Assistant tool)**
 ```bash
 cd ~/NEXUS-COVE
 .venv/bin/cove-worker --name Aegis-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Aegis-Worker
 ```
 
-**Terminal 4 — Worker "Vigil-Worker" (initiator, pattern tool)**
+**Terminal 4 — Worker "Vigil-Worker" (Dev Assistant tool)**
 ```bash
 cd ~/NEXUS-COVE
 .venv/bin/cove-worker --name Vigil-Worker --uri ws://127.0.0.1:8765 --model qwen2.5:0.5b --personality Vigil-Worker --start-conversation Aegis-Worker --start-interval 10
@@ -322,12 +322,6 @@ NEXUS-COVE/
 ├── plugins/
 │   ├── nexus-cove-enhancement/  # Claude Code plugin (hooks + TypeScript types)
 │   └── README.md                # Plugin directory overview
-├── archive/                     # Superseded/consolidated directories
-│   ├── NexusCove_Skills_Plugins_Installers_v3/  # Skill/plugin installer scripts
-│   ├── pack_v3/                 # Packaged artifact (.claude/, src/)
-│   ├── reference/               # Former reference data (geology.csv)
-│   ├── CODE_OF_CONDUCT.md       # Archived (solo project)
-│   └── SECURITY.md              # Archived (solo project)
 ├── docs/
 │   ├── architecture/overview.md     # 7-layer architecture
 │   ├── guides/
@@ -354,7 +348,7 @@ NEXUS-COVE/
 ├── CHANGELOG.md                # Version history
 ├── CLAUDE.md                   # Project instructions for Claude Code
 ├── AGENTS.md                   # Agent development guidelines
-└── LICENSE                     # All Rights Reserved
+└── LICENSE                     # MIT License
 ```
 
 ---
@@ -445,7 +439,7 @@ Got a new backend? Found a bug? PRs are welcome. Ensure:
 
 ## 📝 License
 
-Distributed under **All Rights Reserved**. See [LICENSE](LICENSE) for more information.
+Distributed under **MIT License**. See [LICENSE](LICENSE) for more information.
 
 ---
 

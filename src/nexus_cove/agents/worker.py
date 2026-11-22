@@ -5,14 +5,10 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from nexus_cove.agents.backends.base import AgentBackend
 from nexus_cove.agents.backends.deterministic_backend import DeterministicTestBackend
-from nexus_cove.agents.backends.ollama_replier import (
-    ModelUnavailable,
-    OllamaReplier,
-    default_system_prompt,
-)
 from nexus_cove.agents.knowledge import (
     MAX_ITEM_CHARS,
     MAX_ITEMS_IN_PROMPT,
@@ -28,12 +24,18 @@ from nexus_cove.agents.personality import (
     bundled_personality,
     load_personality,
 )
-from nexus_cove.agents.starter import ConversationStarter
 from nexus_cove.agents.tools import toolkit_for
 from nexus_cove.core.dialogue import DialogueGuard
 from nexus_cove.core.models import Agent, AgentStatus, Task, TaskResult, TaskStatus
 from nexus_cove.core.protocols import decode_message, encode_message
 from nexus_cove.utils.reconnection import ExponentialBackoff
+
+if TYPE_CHECKING:
+    from nexus_cove.agents.backends.ollama_replier import (
+        ModelUnavailable,
+        OllamaReplier,
+    )
+    from nexus_cove.agents.starter import ConversationStarter
 
 log = logging.getLogger("nexus_cove.worker")
 
@@ -500,6 +502,13 @@ def main() -> None:
         level=logging.INFO,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
+    # Lazy imports for optional modules (loaded only when needed via TYPE_CHECKING)
+    from nexus_cove.agents.backends.ollama_replier import (
+        OllamaReplier,
+        default_system_prompt,
+    )
+    from nexus_cove.agents.starter import ConversationStarter
+
     capabilities = frozenset(args.capability or ["general"])
     if not args.test_backend:
         raise SystemExit(
@@ -514,7 +523,9 @@ def main() -> None:
         build_system_prompt(personality) if personality else default_system_prompt(args.name)
     )
     replier = (
-        OllamaReplier(args.model, system_prompt, base_url=args.ollama_url, timeout=args.ollama_timeout)
+        OllamaReplier(
+            args.model, system_prompt, base_url=args.ollama_url, timeout=args.ollama_timeout
+        )
         if args.model else None
     )
     starter = (

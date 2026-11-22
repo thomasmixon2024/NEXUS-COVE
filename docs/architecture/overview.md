@@ -40,8 +40,8 @@
 │  • Personalities        │  │  • Tasks table          │
 │  • Memory (JSONL)       │  │  • TaskResults table    │
 │  • Knowledge (per-agent)│  │  • Schema migrations    │
-│  • Tools (Geology,      │  │  • Summary stats        │
-│    Pattern)             │  │                         │
+│  • Tools (Debug, Dev,      │  │  • Summary stats        │
+│    First Principles)             │  │                         │
 │  • Ollama Replier       │  └─────────────────────────┘
 │  • Conversation Starter │
 │  • Pause/Resume/Stop    │

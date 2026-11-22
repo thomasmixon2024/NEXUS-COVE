@@ -216,3 +216,14 @@ class SQLiteStorage:
 
     def __exit__(self, exc_type, exc, tb) -> None:
         self.close()
+
+    def vacuum(self) -> None:
+        """Run VACUUM to reclaim free space and shrink the database file.
+
+        This rewrites the entire database file to eliminate free space
+        left behind by deleted or updated rows. Call after heavy
+        write workloads to keep the file size minimal.
+        """
+        if self.connection is None:
+            raise RuntimeError("Storage is not initialized")
+        self.connection.execute("VACUUM")

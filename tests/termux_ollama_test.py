@@ -3,8 +3,8 @@
 
 import asyncio
 import subprocess
-import time
 import sys
+import time
 from pathlib import Path
 
 OLLAMA_URL = "http://127.0.0.1:11434"
@@ -39,8 +39,11 @@ async def test_agent_reply() -> dict:
     """Test agent reply via Ollama Replier."""
     # Import after confirming environment
     sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-    from nexus_cove.agents.backends.ollama_replier import OllamaReplier, ModelUnavailable
-    from nexus_cove.agents.backends.ollama_replier import default_system_prompt
+    from nexus_cove.agents.backends.ollama_replier import (
+        ModelUnavailable,
+        OllamaReplier,
+        default_system_prompt,
+    )
 
     replier = OllamaReplier(MODEL, default_system_prompt("TestAgent"), OLLAMA_URL)
     start = time.monotonic()
@@ -60,7 +63,7 @@ async def main():
     # Check daemon
     if not await check_ollama():
         print("Starting ollama serve...")
-        proc = subprocess.Popen(["ollama", "serve"])
+        subprocess.Popen(["ollama", "serve"])
         await asyncio.sleep(3)
         if not await check_ollama():
             print("❌ Ollama daemon failed to start")
